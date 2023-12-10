@@ -20,7 +20,7 @@ function Page() {
 }
 ```
 
-デフォルトだと、Vikeはファイルシステムルーティングを行います。
+デフォルトでは、Vikeはファイルシステムルーティングを行います。
 
 ```
 FILESYSTEM                  URL
@@ -109,7 +109,7 @@ async function onRenderClient(pageContext) {
 
 ## データの取得
 
-次に、データの取得方法を見てみましょう
+次に、データの取得方法を見てみましょう。
 
 ```jsx
 // /pages/star-wars/movie/+Page.jsx
@@ -144,19 +144,19 @@ export default "/star-wars/@movieId";
 import fetch from "node-fetch";
 
 export async function onBeforeRender(pageContext) {
-  // The route parameter of `/star-wars/@movieId` is available at `pageContext.routeParams`
+  // `/star-wars/@movieId` のルートパラメータは `pageContext.routeParams` で利用可能
   const { movieId } = pageContext.routeParams;
 
-  // By default, +onBeforeRender.js files are loaded and exectued only on the server-side
-  // which means we can use SQL/ORM queries here.
+  // デフォルトでは、`+onBeforeRender.js` ファイルはサーバーサイドでのみロードおよび実行されます。
+  // つまり、ここでSQL/ORMクエリを使用できます。
   const response = await fetch(`https://swapi.dev/api/films/${movieId}`);
   let movie = await response.json();
 
-  // Our render and hydrate functions we defined earlier pass `pageContext.pageProps` to
-  // the root React component `Page`; this is where we define `pageProps`.
+  // 以前に定義したレンダリングおよびハイドレーション関数は `pageContext.pageProps` を
+  // ルートReactコンポーネント `Page` に渡します。ここで `pageProps` を定義します。
   const pageProps = { movie };
 
-  // We make `pageProps` available as `pageContext.pageProps`
+  // 最終的に `pageProps` を `pageContext.pageProps` として返却します。
   return {
     pageContext: {
       pageProps
@@ -169,16 +169,15 @@ export async function onBeforeRender(pageContext) {
 // /renderer/+config.h.js
 // Environment: config
 
-// By default, pageContext values are available only on the server, but our onRenderClient()
-// hook we defined earlier runs in the browser and needs the pageContext.pageProps value.
-// We use passToClient to tell Vike to serialize and make pageContext.pageProps available
-// in the browser.
+// デフォルトでは、pageContextの値はサーバー上でのみ利用可能ですが、先に定義したonRenderClient()
+// フックはブラウザで実行され、pageContext.pagePropsの値が必要です。
+// これらの値をシリアライズし、ブラウザで利用可能にするためにpassToClientを使用します。
 export default {
   passToClient: ['pageProps']
 }
 ```
 
-That's it for the tour and we have actually already seen most of Vike's interface;
-not only is Vike flexible but it's also simple to use!
+これでツアーは終わりですが、Vikeのインターフェースのほとんどを既にお見せしています。
+Vikeは柔軟性がありながらシンプルに使えるフレームワークです！
 
 <ScaffoldCallToActionTour />
