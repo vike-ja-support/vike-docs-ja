@@ -1,9 +1,8 @@
 import { ScaffoldCallToActionTour } from './index/ScaffoldCallToAction'
 
-## Routing
+## ルーティング
 
-Similarly to Next.js,
-we define a new page by creating a new `+Page.jsx` file.
+Next.jsと似ていますが、Vikeで新しくページを作るには `+Page.jsx` というファイルを作成します。
 
 ```jsx
 // /pages/index/+Page.jsx
@@ -21,7 +20,7 @@ function Page() {
 }
 ```
 
-By default, Vike does Filesystem Routing.
+デフォルトだと、Vikeはファイルシステムルーティングを行います。
 
 ```
 FILESYSTEM                  URL
@@ -29,24 +28,26 @@ FILESYSTEM                  URL
 /pages/about/+Page.jsx      /about
 ```
 
-We can also define a page's route with a *Route String* (for parameterized routes such as `/movies/@id`) or a *Route Function* (for full programmatic flexibility).
+また、特定の文字列（例えば`/movies/@id`）や作成した関数をもとにして、ページのルーティングを定義することもできます。
+自分で作成した関数をもとにルーティングを規定できるのは、柔軟性が高く、かゆいところにも手の届くVikeの特徴です。
+
+ルーティング用の関数を作るには `+route.js` を作成します。
+`+route.js` は、ルーティング対象である `+Page.jsx` と同じディレクトリに設置してください。
 
 ```js
 // /pages/index/+route.js
 
-// Note how the two files share the same folder `/pages/index/`; this is how Vike
-// knows that `/pages/index/+route.js` defines the route of `/pages/index/+Page.jsx`.
-
 // Route Function
 export default pageContext => pageContext.urlPathname === '/';
 
-// If we don't create a `+route.js` file then Vike does Filesystem Routing
 ```
 
+`+route.js` ファイルを作成しなかった場合は、Vikeは通常通りにファイルシステムルーティングを行います。
 
-## Render Control
 
-Unlike Next.js, we control how our pages are rendered.
+## レンダリングの制御
+
+Next.jsとは異なり、Vikeではページのレンダリングを開発者自身が制御します。
 
 ```jsx
 // /renderer/+onRenderHtml.jsx
@@ -96,19 +97,19 @@ async function onRenderClient(pageContext) {
 }
 ```
 
-This control enables us to *easily* and *naturally* integrate any tool we want (Redux, GraphQL, Service Worker, Preact, ...).
+このアプローチにより、任意のツール（Redux、GraphQL、Service Worker、Preactなど）を簡単かつ自然に統合することが可能です。
 
-Note how we defined the files `onRenderClient.jsx` and `onRenderHtml.jsx` in a directory called `/renderer/`: that way, we tell Vike to apply the `onRenderHtml()` and `onRenderClient()` hooks to all our pages.
+また、`onRenderClient.jsx` および `onRenderHtml.jsx` ファイルは `/renderer/` ディレクトリにあらかじめ作成されています。これにより、Vikeは`onRenderHtml()` および `onRenderClient()` フックをすべてのページに適用します。
 
-This means we can now create a new page just by defining a new `+Page.jsx` file (the `+route.js` file is optional).
+つまり、Vikeでは詳細なレンダリングの制御も可能であり、そしてその必要がない場合は、`+Page.jsx` ファイルを定義するだけで新しいページを作成することができます（`+route.js` ファイルはオプションです）。
 
-Plus files in `/renderer/` can be overridden. For example, we can override the `onRenderHtml()` and `onRenderClient()` hooks for rendering some of
-our pages with a completely different UI framework such as Vue.
+さらに `/renderer/` 内のファイルは上書き可能です。たとえば、Vueのような全く異なるUIフレームワークを使用して、
+一部のページを異なる方法でレンダリングするための `onRenderHtml()` および `onRenderClient()` フックを上書きすることもできます。
 
 
-## Data Fetching
+## データの取得
 
-Let's now have a look at how to fetch data.
+次に、データの取得方法を見てみましょう
 
 ```jsx
 // /pages/star-wars/movie/+Page.jsx
