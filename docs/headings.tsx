@@ -18,7 +18,6 @@ const headings = [
     level: 2,
     title: 'Next.jsとの比較',
     url: '/nextjs',
-    sectionTitles: ['React Server Components']
   },
   {
     level: 2,
