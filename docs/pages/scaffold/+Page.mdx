@@ -1,37 +1,29 @@
-import { Link, Warning } from '@brillout/docpress'
+新規でアプリケーションを立ち上げるには:
 
-You can use [Bati](https://batijs.github.io/) to scaffold a new Vike app (that uses <Link href="/extensions">Vike extensions</Link>).
-
-You can also, if you want full control over integration code, use the following command to scaffold a new Vike app (that doesn't use any Vike extension).
-
-<Warning>
-We recommend using the following command only if:
- - You are an expert user, and you need control over integration code.
- - You are curious and want to play with integration code.
-</Warning>
-
-With [npm](https://www.npmjs.com/):
+[npm](https://www.npmjs.com/)の場合:
 
 ```shell
 npm init vike@latest
 ```
 
-With [pnpm](https://pnpm.io/):
+[pnpm](https://pnpm.io/)の場合:
 
 ```shell
 pnpm create vike
 ```
 
-With [Yarn](https://yarnpkg.com/):
+[Yarn](https://yarnpkg.com/)の場合:
 
 ```shell
 yarn create vike
 ```
 
-Options:
-- `--skip-git`: don't initialize a new Git repository
+オプション:
 
-A prompt will let you choose between:
+- `--skip-git`: 新しいGitリポジトリを初期化しない
+
+ブロンプトで以下の選択肢から選択することができます：
+
 - `react`: React + JavaScript
 - `react-ts`: React + TypeScript
 - `vue`: Vue + JavaScript

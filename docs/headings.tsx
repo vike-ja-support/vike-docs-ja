@@ -84,7 +84,7 @@ const headings = [
   {
     level: 2,
     title: '認証',
-    url: '/auth',
+    url: '/auth'
   },
   {
     level: 2,
@@ -616,14 +616,14 @@ const headings = [
   },
   {
     level: 2,
-    title: 'Configファイル',
-    url: '/config'
-  },
-  {
-    level: 2,
     titleInNav: '`Layout`',
     title: '`<Layout>`',
     url: '/Layout'
+  },
+  {
+    level: 2,
+    title: 'Configファイル',
+    url: '/config'
   },
   {
     level: 2,
