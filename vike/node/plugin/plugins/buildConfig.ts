@@ -1,6 +1,7 @@
 export { buildConfig }
 export { assertRollupInput }
 export { analyzeClientEntries }
+export { manifestTempFile }
 
 import {
   assert,
@@ -13,10 +14,13 @@ import {
   assertPosixPath,
   assertUsage,
   injectRollupInputs,
-  normalizeRollupInput
+  normalizeRollupInput,
+  getOutDirs,
+  type OutDirs,
+  isNpmPackageImport,
+  assertNodeEnv_build
 } from '../utils.js'
-import { virtualFileIdImportUserCodeServer } from '../../shared/virtual-files/virtualFileImportUserCode.js'
-import { getVikeConfig } from './importUserCode/v1-design/getVikeConfig.js'
+import { getVikeConfig, isV1Design } from './importUserCode/v1-design/getVikeConfig.js'
 import { getConfigValue } from '../../../shared/page-configs/helpers.js'
 import { findPageFiles } from '../shared/findPageFiles.js'
 import { getConfigVike } from '../../shared/getConfigVike.js'
@@ -26,58 +30,96 @@ import type { PageConfigBuildTime } from '../../../shared/page-configs/PageConfi
 import type { FileType } from '../../../shared/getPageFiles/fileTypes.js'
 import { extractAssetsAddQuery } from '../../shared/extractAssetsQuery.js'
 import { createRequire } from 'module'
-import { getClientEntryFilePath } from '../../shared/getClientEntryFilePath.js'
+import { getClientEntry } from '../../shared/getClientEntry.js'
 import fs from 'fs/promises'
 import path from 'path'
+import { fixServerAssets, fixServerAssets_isEnabled } from './buildConfig/fixServerAssets.js'
+import { set_constant_ASSETS_MAP } from './importBuild/index.js'
+import { prependEntriesDir } from '../../shared/prependEntriesDir.js'
 // @ts-ignore Shimmed by dist-cjs-fixup.js for CJS build.
 const importMetaUrl: string = import.meta.url
 const require_ = createRequire(importMetaUrl)
-
 const manifestTempFile = '_temp_manifest.json'
 
-function buildConfig(): Plugin {
-  let generateManifest: boolean
-  return {
-    name: 'vike:buildConfig',
-    apply: 'build',
-    enforce: 'post',
-    configResolved: {
-      order: 'post',
-      async handler(config) {
-        assertRollupInput(config)
-        const entries = await getEntries(config)
-        assert(Object.keys(entries).length > 0)
-        config.build.rollupOptions.input = injectRollupInputs(entries, config)
-        addLogHook()
+function buildConfig(): Plugin[] {
+  let isServerAssetsFixEnabled: boolean
+  let isSsrBuild: boolean
+  let outDirs: OutDirs
+  let config: ResolvedConfig
+  return [
+    {
+      name: 'vike:buildConfig:configResolved',
+      apply: 'build',
+      enforce: 'post',
+      configResolved: {
+        order: 'post',
+        async handler(config_) {
+          config = config_
+          assertNodeEnv_build()
+          assertRollupInput(config)
+          const entries = await getEntries(config)
+          assert(Object.keys(entries).length > 0)
+          config.build.rollupOptions.input = injectRollupInputs(entries, config)
+          addLogHook()
+          outDirs = getOutDirs(config)
+          {
+            isServerAssetsFixEnabled = fixServerAssets_isEnabled() && (await isV1Design(config, false))
+            if (isServerAssetsFixEnabled) {
+              // https://github.com/vikejs/vike/issues/1339
+              config.build.ssrEmitAssets = true
+              // Required if `ssrEmitAssets: true`, see https://github.com/vitejs/vite/pull/11430#issuecomment-1454800934
+              config.build.cssMinify = 'esbuild'
+            }
+          }
+        }
+      },
+      config(config) {
+        assertNodeEnv_build()
+        isSsrBuild = viteIsSSR(config)
+        return {
+          build: {
+            outDir: resolveOutDir(config),
+            manifest: manifestTempFile,
+            copyPublicDir: !isSsrBuild
+          }
+        } satisfies UserConfig
+      },
+      buildStart() {
+        assertNodeEnv_build()
       }
     },
-    config(config) {
-      generateManifest = !viteIsSSR(config)
-      return {
-        build: {
-          outDir: resolveOutDir(config),
-          manifest: generateManifest ? manifestTempFile : false,
-          copyPublicDir: !viteIsSSR(config)
+    {
+      name: 'vike:buildConfig:writeBundle',
+      apply: 'build',
+      // Make sure other writeBundle() hooks are called after this writeBundle() hook.
+      //  - set_constant_ASSETS_MAP() needs to be called before dist/server/ code is executed.
+      //    - For example, the writeBundle() hook of vite-plugin-vercel needs to be called after this writeBundle() hook, otherwise: https://github.com/vikejs/vike/issues/1527
+      enforce: 'pre',
+      writeBundle: {
+        order: 'pre',
+        sequential: true,
+        async handler(options, bundle) {
+          if (isSsrBuild) {
+            // Ideally we'd move dist/_temp_manifest.json to dist/server/client-assets.json instead of dist/assets.json
+            //  - But we can't because there is no guarentee whether dist/server/ is generated before or after dist/client/ (generating dist/server/ after dist/client/ erases dist/server/client-assets.json)
+            //  - We'll able to do so once we replace `$ vite build` with `$ vike build`
+            const assetsJsonFilePath = path.posix.join(outDirs.outDirRoot, 'assets.json')
+            const clientManifestFilePath = path.posix.join(outDirs.outDirClient, manifestTempFile)
+            const serverManifestFilePath = path.posix.join(outDirs.outDirServer, manifestTempFile)
+            if (!isServerAssetsFixEnabled) {
+              await fs.copyFile(clientManifestFilePath, assetsJsonFilePath)
+            } else {
+              const clientManifestMod = await fixServerAssets(config)
+              await fs.writeFile(assetsJsonFilePath, JSON.stringify(clientManifestMod, null, 2), 'utf-8')
+            }
+            await fs.rm(clientManifestFilePath)
+            await fs.rm(serverManifestFilePath)
+            await set_constant_ASSETS_MAP(options, bundle)
+          }
         }
-      } satisfies UserConfig
-    },
-    async writeBundle(options, bundle) {
-      const manifestEntry = bundle[manifestTempFile]
-      /* Fails with @vitejs/plugin-legacy because writeBundle() is called twice during the client build (once for normal client assets and a second time for legacy assets), see reproduction at https://github.com/vikejs/vike/issues/1154
-      assert(generateManifest === !!manifestEntry)
-      */
-      if (manifestEntry) {
-        const { dir } = options
-        assert(dir)
-        const manifestFilePathOld = path.join(dir, manifestEntry.fileName)
-        // Ideally we'd move dist/_temp_manifest.json to dist/server/client-assets.json instead of dist/assets.json
-        //  - But we can't because there is no guarentee whether dist/server/ is generated before or after dist/client/ (generating dist/server/ after dist/client/ erases dist/server/client-assets.json)
-        //  - We'll able to do so once we replace `$ vite build` with `$ vike build`
-        const manifestFilePathNew = path.join(dir, '..', 'assets.json')
-        await fs.rename(manifestFilePathOld, manifestFilePathNew)
       }
     }
-  }
+  ]
 }
 
 async function getEntries(config: ResolvedConfig): Promise<Record<string, string>> {
@@ -130,7 +172,7 @@ function analyzeClientEntries(pageConfigs: PageConfigBuildTime[], config: Resolv
   let hasClientRouting = false
   let hasServerRouting = false
   let clientEntries: Record<string, string> = {}
-  let clientFilePaths: string[] = []
+  let clientEntryList: string[] = []
   pageConfigs.forEach((pageConfig) => {
     const configValue = getConfigValue(pageConfig, 'clientRouting', 'boolean')
     if (configValue?.value) {
@@ -144,15 +186,15 @@ function analyzeClientEntries(pageConfigs: PageConfigBuildTime[], config: Resolv
       clientEntries[entryName] = entryTarget
     }
     {
-      const clientFilePath = getClientEntryFilePath(pageConfig)
-      if (clientFilePath) {
-        clientFilePaths.push(clientFilePath)
+      const clientEntry = getClientEntry(pageConfig)
+      if (clientEntry) {
+        clientEntryList.push(clientEntry)
       }
     }
   })
-  clientFilePaths = unique(clientFilePaths)
-  clientFilePaths.forEach((pageFile) => {
-    const { entryName, entryTarget } = getEntryFromFilePath(pageFile, config)
+  clientEntryList = unique(clientEntryList)
+  clientEntryList.forEach((clientEntry) => {
+    const { entryName, entryTarget } = getEntryFromClientEntry(clientEntry, config)
     clientEntries[entryName] = entryTarget
   })
 
@@ -176,13 +218,20 @@ async function getPageFileEntries(config: ResolvedConfig, includeAssetsImportedB
       assert(includeAssetsImportedByServer)
       addExtractAssetsQuery = true
     }
-    const { entryName, entryTarget } = getEntryFromFilePath(pageFile, config, addExtractAssetsQuery)
+    const { entryName, entryTarget } = getEntryFromClientEntry(pageFile, config, addExtractAssetsQuery)
     pageFileEntries[entryName] = entryTarget
   })
   return pageFileEntries
 }
 
-function getEntryFromFilePath(filePath: string, config: ResolvedConfig, addExtractAssetsQuery?: boolean) {
+function getEntryFromClientEntry(clientEntry: string, config: ResolvedConfig, addExtractAssetsQuery?: boolean) {
+  if (isNpmPackageImport(clientEntry)) {
+    const entryTarget = clientEntry
+    const entryName = prependEntriesDir(clientEntry)
+    return { entryName, entryTarget }
+  }
+
+  const filePath = clientEntry
   assertPosixPath(filePath)
   assert(filePath.startsWith('/'))
 
@@ -204,15 +253,6 @@ function getEntryFromPageConfig(pageConfig: PageConfigBuildTime, isForClientSide
   return { entryName, entryTarget }
 }
 
-function prependEntriesDir(entryName: string): string {
-  if (entryName.startsWith('/')) {
-    entryName = entryName.slice(1)
-  }
-  assert(!entryName.startsWith('/'))
-  entryName = `entries/${entryName}`
-  return entryName
-}
-
 function resolve(filePath: string) {
   assert(filePath.startsWith('dist/'))
   // [RELATIVE_PATH_FROM_DIST] Current directory: node_modules/vike/dist/esm/node/plugin/plugins/
@@ -232,6 +272,7 @@ function addLogHook() {
   })
   // Exhaustive list extracted from writeLine() calls at https://github.com/vitejs/vite/blob/193d55c7b9cbfec5b79ebfca276d4a721e7de14d/packages/vite/src/node/plugins/reporter.ts
   // prettier-ignore
+  // biome-ignore format:
   const viteTransientLogs = [
     'transforming (',
     'rendering chunks (',

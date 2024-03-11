@@ -1,0 +1,79 @@
+import { Link } from '@brillout/docpress'
+
+Most <Link href="/pageContext">`pageContext`</Link> values are available only on the server-side, but you can use `passToClient` to make them available on the client-side.
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  passToClient: [
+    'user'
+  ]
+}
+```
+
+```js
+// /pages/+onHydrationEnd.js
+// Environment: client
+
+export { onHydrationEnd }
+
+async function onHydrationEnd(pageContext) {
+  // pageContext.user is available here thanks to passToClient
+  console.log(pageContext.user)
+
+  // ...
+}
+```
+
+Some values, such as `pageContext.data`, are already passed to the client-side by <Link href="#default">default</Link>.
+
+
+## Default
+
+When using <Link href="/client-routing" noBreadcrumb={true} />, the following are also available on the client-side by default:
+ - `pageContext.Page`
+ - `pageContext.data`
+ - `pageContext.config`
+ - `pageContext.isHydration`
+ - `pageContext.isBackwardNavigation`
+ - `pageContext.routeParams`
+ - `pageContext.urlOriginal`
+ - `pageContext.urlPathname`
+ - `pageContext.urlParsed`
+
+When using <Link href="/server-routing" noBreadcrumb={true} />, the following are also available on the client-side by default:
+ - `pageContext.Page`
+ - `pageContext.data`
+ - `pageContext.config`
+
+
+## Serialization
+
+Serialization is done with [`@brillout/json-serializer`](https://github.com/brillout/json-serializer).
+
+User-defined classes are lost during serialization:
+
+```js
+class MyClass {
+  prop = 42
+}
+
+// On the server-side:
+const obj = new MyClass()
+console.log(obj) // MyClass { prop: 42 }
+console.log(obj instanceof MyClass) // true
+
+// On the browser-side, after `obj` was (de)serialized:
+console.log(obj) // { prop: 42 }
+console.log(obj instanceof MyClass) // false
+```
+
+See [GitHub > `brillout/json-serializer` > #3 Support user-defined classes](https://github.com/brillout/json-serializer/issues/3).
+
+
+## See also
+
+ - <Link href="/pageContext" />
+ - <Link href="/usePageContext" />

@@ -1,0 +1,216 @@
+import { Link } from '@brillout/docpress'
+import RouteDomainDriven from '../../components/RouteDomainDriven.mdx'
+
+Route Functions give you full programmatic flexibility to define routes.
+
+```js
+// /pages/product/edit/+route.js
+
+export { route }
+
+import partRegex from 'part-regex'
+
+const route = (pageContext) => {
+  // Route guard (we can also use a guard() hook instead)
+  if (!pageContext.user.isAdmin) {
+    return false
+  }
+
+  // We can use RegExp / any library we want
+  if (!partRegex`/product/${/[0-9]+/}/edit`.test(pageContext.urlPathname)) {
+    return false
+  }
+  const id = pageContext.urlPathname.split('/')[2]
+
+  return {
+    // Make `id` available as pageContext.routeParams.id
+    routeParams: { id }
+  }
+}
+```
+
+If you merely want to guard your page, then you can use a <Link text="Route String" href="/route-string" /> with a <Link text={<code>guard()</code>} href="/guard" /> hook instead of a Route Function, which is usually a better approach.
+
+You can use any routing tool you want, such as:
+ - Vike's <Link text="Route String" href="/route-string" /> resolver [`resolveRoute()`](#resolveroute)
+ - [partRegex](https://github.com/brillout/part-regex)
+ - [path-to-regexp](https://www.npmjs.com/package/path-to-regexp) (the router used by Express.js)
+
+
+## Precedence
+
+The `precedence` number can be used to resolve route conflicts, see <Link href="/routing-precedence" />.
+
+```js
+// /pages/product/edit/+route.js
+
+export { route }
+
+const route = (pageContext) => {
+  // ...
+  return {
+    precedence: 10,
+  }
+}
+```
+
+## `resolveRoute()`
+
+You can use <Link text="Route Strings" href="/route-string" /> inside Route Functions:
+
+```js
+// /pages/product/edit/+route.js
+
+export { route }
+
+import { resolveRoute } from 'vike/routing'
+
+const route = (pageContext) => {
+  if (!pageContext.user.isAdmin) {
+    return false
+  }
+  return resolveRoute('/product/@id/edit', pageContext.urlPathname)
+}
+```
+
+```js
+// /pages/product/index/+route.js
+
+export { route }
+
+import { resolveRoute } from 'vike/routing'
+
+const route = (pageContext) => {
+  {
+    const result = resolveRoute('/product/@id', pageContext.urlPathname)
+    if (result.match) {
+      result.routeParams.view = 'overview'
+      return result
+    }
+  }
+
+  const result = resolveRoute('/product/@id/@view', pageContext.urlPathname)
+  if (!['reviews', 'pricing'].includes(result.routeParams.view)) {
+    return false
+  }
+  return result
+}
+```
+
+
+## TypeScript
+
+```ts
+// /pages/product/index/+route.ts
+
+export { route }
+
+import type { RouteSync } from 'vike/types'
+import { resolveRoute } from 'vike/routing'
+
+const route: RouteSync = (pageContext): ReturnType<RouteSync> => {
+  // ..
+}
+```
+
+
+## Lightweight & fast
+
+Route Functions should be lightweight and fast.
+
+Vike executes *all* Route Functions every time the user navigates to a new page. This means that a slow Route Function slows down all pages.
+
+Vike always has to run all Route Functions because it cannot magically predict the outcome of Route Functions. Consider the following example:
+
+```js
+// /pages/login/+route.js
+
+export { route }
+
+const route = (pageContext) => {
+  // Only render the login page to unauthenticated users
+  if (pageContext.user !== null) return false
+  return {
+    // We override all other routes by setting a high `precedence` value of `99`.
+    // This means that, if the user isn't authenticated, then *all* URLs render the login page.
+    precedence: 99
+  }
+}
+```
+
+> This authentication routing trick is further explained at <Link href="/auth#login-flow" />.
+
+Vike cannot know whether another Route Function will return a higher precedence number, therefore Vike has to execute all Route Functions.
+
+If you use <Link text="Client Routing" href="/client-routing" />, then *all* your Route Functions are loaded in the browser. This means that if a Route Function imports a lot of code, then all that code is loaded on the client-side of *every* page. A heavy Route Function slows down your whole app.
+
+Route Functions should be lightweight and fast.
+
+
+## Async
+
+Async Route Functions are forbidden.
+
+```js
+// +route.js
+
+// ❌ This is forbidden
+export default async () => { /* ... */ }
+```
+
+The motivation for having an asynchronous Route Function is usually to implement redirection and/or protecting a private
+page. Instead, use <Link href="/render" text={<code>throw render()</code>} /> or<Link href="/redirect" text={<code>throw redirect()</code>} />
+with an async <Link text={<code>guard()</code>} href="/guard" />, <Link text={<code>data()</code>} href="/data" /> or
+<Link text={<code>onBeforeRender()</code>} href="/onBeforeRender" /> hook.
+
+> An asynchronous Route Function would slow down your entire app: as explained in [Lightweight & fast](#lightweight-fast), every time the user navigates to a new page *all* Route Functions are called. This means that a slow Route Function slows down *all* pages.
+
+
+## Redirection
+
+See <Link href="/redirect" />.
+
+## Domain-driven file structure
+
+<RouteDomainDriven />
+
+## Cannot provide `pageContext`
+
+Using Route Functions to provide `pageContext` values is forbidden.
+
+```js
+// +route.js
+
+export default () => {
+  return {
+    // This is forbidden and Vike will throw an error
+    pageContext: {
+      some: 'value'
+    }
+  }
+}
+```
+
+In principle, Vike could support providing `pageContext` values but it deliberately doesn't support it in order to foster lightweight Route Functions.
+
+> As explained in [Lightweight & fast](#lightweight-fast), you should keep Route Functions simple and you shouldn't
+implement complex logic in `+route.js` files.
+
+That said, you can work around it by misusing `pageContext.routeParams` to provide data.
+
+```js
+// +route.js
+
+export default () => {
+  return {
+    routeParams: {
+      // Any data can be added here
+    }
+  }
+}
+```
+
+But this isn't recommended: `pageContext.routeParams` is supposed to hold only a minimal amount of information. Instead,
+we recommend to implement complex logic in <Link text={<code>data()</code>} href="/data" />,
+<Link text={<code>onBeforeRender()</code>} href="/onBeforeRender" />, <Link text={<code>guard()</code>} href="/guard" />,
+or in a <Link text="custom hook" href="/meta" />.

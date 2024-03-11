@@ -1,0 +1,106 @@
+import { Link } from '@brillout/docpress'
+import { UiFrameworkVikeExtension, UiFrameworkVikeExtensionNames } from '../../components'
+
+The `Page` setting determines the root component of the page.
+
+With JSX (React/Solid):
+
+```js
+// /pages/index/+Page.jsx
+
+export { Page }
+/* Or:
+export default Page
+*/
+
+function Page() {
+  return <>
+    <h1>Hi</h1>
+    <p>Hello World</p>
+  </>
+}
+```
+
+With Vue:
+```vue
+<!-- /pages/index/+Page.vue -->
+
+<template>
+  <h1>Hi</h1>
+  <p>Hello World</p>
+</template>
+```
+
+What happens with the `Page` value is determined by the <UiFrameworkVikeExtension />. Alternatively, for complete control over the <Link href="/ui-framework">UI framework</Link> integration, you can <Link href="#without-vike-extension">manually integrate</Link> the UI framework yourself.
+
+
+
+## Without Vike extension
+
+Vike itself never uses the `Page` value: it just makes the value available at `pageContext.Page`.
+The `pageContext.Page` value is typically used by the <Link href="/onRenderHtml">`onRenderHtml()`</Link> and <Link href="/onRenderClient">`onRenderClient()`</Link> hooks: these two hooks essentially determine how the `Page` value is rendered to HTML and the [DOM](https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model).
+
+The <UiFrameworkVikeExtension /> implements the `onRenderHtml()` and `onRenderClient()` hooks, so that you don't have to implement them: everything just works like a regular framework such as Next.js or Nuxt.
+
+Instead of using <UiFrameworkVikeExtensionNames />, you can integrate your favorite UI framework yourself: you then have complete control over the UI framework integration.
+
+Here is a minimal example of manually integrating a UI framework:
+
+```js
+// /pages/hello/+Page.js
+// Environment: browser and server (configurable)
+
+export { Page }
+
+function Page() {
+  // Here we export a JSX component, but we can export anything we want since Vike doesn't
+  // do anything with `Page`: it just makes it available at `pageContext.Page`.
+  return <>Hello World</>
+}
+```
+
+> You can configure in which environment the `Page` value is loaded by using <Link href="/meta">`meta`</Link>.
+
+```js
+// /renderer/+onRenderHtml.js
+// Environment: server
+
+export { onRenderHtml }
+
+import { escapeInject, dangerouslySkipEscape } from 'vike/server'
+import { renderToHtml } from 'my-favorite-ui-framework/server'
+
+async function onRenderHtml(pageContext) {
+  // The Page value is available at pageContext.Page
+  const { Page } = pageContext
+  const pageHtml = await renderToHtml(Page)
+
+  return escapeInject`<html>
+    <body>
+      <div id="root">
+        ${dangerouslySkipEscape(pageHtml)}
+      </div>
+    </body>
+  </html>`
+}
+```
+
+```js
+// /renderer/+onRenderClient.js
+// Environment: browser
+
+export { onRenderClient }
+
+import { hydrateDom } from 'my-favorite-ui-framework/client'
+
+async function onRenderClient(pageContext) {
+  // pageContext.Page is also available in the browser
+  const { Page } = pageContext
+  await hydrateDom(Page, document.getElementById('root'))
+}
+```
+
+
+## See also
+
+- <Link href="/Layout" />

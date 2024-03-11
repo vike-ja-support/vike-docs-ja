@@ -1,3 +1,245 @@
+## [0.4.165](https://github.com/vikejs/vike/compare/v0.4.164...v0.4.165) (2024-03-01)
+
+
+### Bug Fixes
+
+* improve error deduping ([9e34c0d](https://github.com/vikejs/vike/commit/9e34c0dd82c372edc82782511e4c01bb665eead8))
+* improve error preamble ([d547664](https://github.com/vikejs/vike/commit/d54766478f61b601d42914a65610172c8d410d1d))
+* improve logging of errors coming from Vite ([5a42d7d](https://github.com/vikejs/vike/commit/5a42d7d721baec62e655293dec9d80e4e5fa7541))
+* remove faulty assert() (fix [#1529](https://github.com/vikejs/vike/issues/1529)) ([9fa3358](https://github.com/vikejs/vike/commit/9fa3358aea51bb0aecb9208aa1ea1a6497402361))
+* simplify error handling logic and require >= vite@4.4.0 ([60d6ef4](https://github.com/vikejs/vike/commit/60d6ef4520b844d9d85225bc507a71ef05f7d132))
+
+
+
+## [0.4.164](https://github.com/vikejs/vike/compare/v0.4.163...v0.4.164) (2024-02-28)
+
+
+### Bug Fixes
+
+* fix support for config.build.assetsDir ([#1154](https://github.com/vikejs/vike/issues/1154)) ([407cb5c](https://github.com/vikejs/vike/commit/407cb5cd466767fc3c4e7e07d894973f45bd58ea))
+* improve hint for ESM/CJS errors ([a53cd6c](https://github.com/vikejs/vike/commit/a53cd6ce904ce3b3fa1aa7807e5b25c2a4aa0d26))
+* re-implement workaround for legacy plugin (fix [#1154](https://github.com/vikejs/vike/issues/1154)) ([2305d5b](https://github.com/vikejs/vike/commit/2305d5b1a2918dfdc3693553efe36ee0e680bea6))
+* warn instead of error upon unexpected NODE_ENV value ([#1526](https://github.com/vikejs/vike/issues/1526), [#1482](https://github.com/vikejs/vike/issues/1482)) ([f0bf7ee](https://github.com/vikejs/vike/commit/f0bf7ee8a404b5686545b50ad4b56936c7f6274d))
+
+
+
+## [0.4.163](https://github.com/vikejs/vike/compare/v0.4.162...v0.4.163) (2024-02-22)
+
+
+### Bug Fixes
+
+* always show a passToClient warning (closes [#1494](https://github.com/vikejs/vike/issues/1494)) ([9365fa5](https://github.com/vikejs/vike/commit/9365fa5e429831c7daf639a0edb374810e8e74a1))
+* disambiguate value file (fix [#1490](https://github.com/vikejs/vike/issues/1490)) ([b163627](https://github.com/vikejs/vike/commit/b1636273a72e9c15b82d3ff4e730a00f8e3603fa))
+* don't try to normalize .pageContext.json URLs ([#1502](https://github.com/vikejs/vike/issues/1502)) ([46e97c0](https://github.com/vikejs/vike/commit/46e97c09a7d3310f2adee9f6ab969ca1c198a552))
+* fix client-side error page rendering ([49fe40c](https://github.com/vikejs/vike/commit/49fe40c6640fc3238516b07a7d0c4bfb102bd5a0))
+* improve error message upon adding Vike's Vite plugin twice (fix [#1502](https://github.com/vikejs/vike/issues/1502)) ([6812418](https://github.com/vikejs/vike/commit/68124188a60c7b96f7c35ba4739cc05b148d8aeb))
+* improve warning upon overwritten config value ([421de1c](https://github.com/vikejs/vike/commit/421de1cb3cb8c7608b73b3e1b65f0f76b2a35656))
+
+
+### Features
+
+* `getGlobalContext{Sync,Async}()` (fix [#1501](https://github.com/vikejs/vike/issues/1501)) ([dbb52e9](https://github.com/vikejs/vike/commit/dbb52e97b026e1143aa7b826ff160f8d973df509))
+
+
+
+## [0.4.162](https://github.com/vikejs/vike/compare/v0.4.161...v0.4.162) (2024-02-17)
+
+
+### Bug Fixes
+
+* assertUsage() config file extension ([a6c3398](https://github.com/vikejs/vike/commit/a6c3398645561f44b05fe253f1d6721ddb89a4e7))
+* explicitly pass through source map avoid Rollup warning (fix [#1481](https://github.com/vikejs/vike/issues/1481)) ([b94db0f](https://github.com/vikejs/vike/commit/b94db0ff66f185fd1b619da3f896f8c6695475c4))
+* improve error message upon build when mixing designs ([#1480](https://github.com/vikejs/vike/issues/1480)) ([0e9c635](https://github.com/vikejs/vike/commit/0e9c635b1bd6921bc8f0ae2b4f8904760a2130c4))
+* only apply new Vite syntax for V1 design ([#1485](https://github.com/vikejs/vike/issues/1485)) ([5b523fa](https://github.com/vikejs/vike/commit/5b523fa601906f2646e43f0a4f9897f50c2a1882))
+* remove superfluous pointer import warning ([0309330](https://github.com/vikejs/vike/commit/03093307b979edcbb50a9aa99fd3e344c4a2b0dd))
+* skip transpiling only for extension configs ([bf221a4](https://github.com/vikejs/vike/commit/bf221a41f65b35735de96243c06856c38bfc9971))
+* start requiring Vike extensions to set the name setting ([82573a5](https://github.com/vikejs/vike/commit/82573a56fa8c3b101fac85c336eb99b74e9e028d))
+* support client entry import ([ba539a4](https://github.com/vikejs/vike/commit/ba539a404408f06ccbf40ffab689c453246509ba))
+* transform imports iff .h.js ([b19a853](https://github.com/vikejs/vike/commit/b19a853025eadbe7a100a0c84e4512936f3ada11))
+* update @brillout/vite-plugin-server-entry ([ead4a94](https://github.com/vikejs/vike/commit/ead4a94550c213aa3e578b4e421914b053b639e6))
+* update warnings around header files / pointer imports ([56687d4](https://github.com/vikejs/vike/commit/56687d49fa12f1a3a93b838b5d4abe165d706929))
+* use heuristic to decide whether config import is a pointer/fake import ([563bd60](https://github.com/vikejs/vike/commit/563bd60b625bcd241f6a5b12d502cf3476b8d417))
+* use latest Vite interface ([f7e5cd8](https://github.com/vikejs/vike/commit/f7e5cd85d015cc08d3757b305b3f47f1c5f9e4e4))
+
+
+
+## [0.4.161](https://github.com/vikejs/vike/compare/v0.4.160...v0.4.161) (2024-02-07)
+
+
+### Bug Fixes
+
+* add error hint ([#1469](https://github.com/vikejs/vike/issues/1469)) ([5bab863](https://github.com/vikejs/vike/commit/5bab86306d08120ab0be2aba8fd568ba3a91cfb7))
+* add missing getReadableNodeStream() type (fix [#1473](https://github.com/vikejs/vike/issues/1473)) ([f473528](https://github.com/vikejs/vike/commit/f47352858b05ab118bda2dee1c74962294039596))
+* deprecate `$ vike prerender` options ([fd0065e](https://github.com/vikejs/vike/commit/fd0065e601b625d30b2af733e61486bfddbf7062))
+* export fake prefetch() on server-side (fix [#1471](https://github.com/vikejs/vike/issues/1471)) ([937d8d5](https://github.com/vikejs/vike/commit/937d8d5c728896b9abad98533e84ab01b6cf8b15))
+* fix internal assertion (fix [#1457](https://github.com/vikejs/vike/issues/1457)) ([2c9e631](https://github.com/vikejs/vike/commit/2c9e6312c7cb14984a874c9e4cf482b45af1f45a))
+* fix order of meta merging (fix [#1458](https://github.com/vikejs/vike/issues/1458)) ([a1101c1](https://github.com/vikejs/vike/commit/a1101c17fd966feffc20c92e3d985f216553487d))
+* improve guard() error message ([#1457](https://github.com/vikejs/vike/issues/1457)) ([df435bb](https://github.com/vikejs/vike/commit/df435bbdcc2530398e3568cf242d1fc232d92be4))
+* prohibit wrong NODE_ENV value upon building ([#1469](https://github.com/vikejs/vike/issues/1469)) ([a49930c](https://github.com/vikejs/vike/commit/a49930c37924a71aac9c14613ecfad5f8fd14e2f))
+* rename `export { PROJECT_VERSION }` to `export { version }` ([224ae95](https://github.com/vikejs/vike/commit/224ae953d23fb84619b7ae9141f76d1d23b45ecf))
+* sort config value sources ([8297658](https://github.com/vikejs/vike/commit/8297658e148f4ff5ff496f910712fba141e9cefc))
+* track config dependencies ([c98e555](https://github.com/vikejs/vike/commit/c98e5556be7a7519d7e719de3094f3416748db07))
+* use config.build.ssrEmitAssets workaround ([#1364](https://github.com/vikejs/vike/issues/1364)) ([b198cdb](https://github.com/vikejs/vike/commit/b198cdb7a07a21c75b1573136ef0f41a3e429f0d))
+
+
+
+## [0.4.160](https://github.com/vikejs/vike/compare/v0.4.159...v0.4.160) (2024-01-23)
+
+
+### Bug Fixes
+
+* add debug logs for faulty setups ([#1450](https://github.com/vikejs/vike/issues/1450)) ([2746aa6](https://github.com/vikejs/vike/commit/2746aa64056ae432fce093fb2211102354909034))
+* allow `+config.js` to `export { config }` instead of `export default` ([fbfe1bd](https://github.com/vikejs/vike/commit/fbfe1bdaf3173abfb317caacdfc0a3e4cf99d90e))
+* avoid loading extension config files twice ([d73533a](https://github.com/vikejs/vike/commit/d73533a4e4ad0c09feb4959d4d9965fde02b2185))
+* fix header file warning ([3e25ac7](https://github.com/vikejs/vike/commit/3e25ac7ae74f6858f4e5fc6306a5c9762b684eb4))
+* further add JSDoc ([1ab632f](https://github.com/vikejs/vike/commit/1ab632faa925b7a9e8c85029582c43ddc3ec3bc7))
+* implement more straightforward assertUsage() upon loading vike/plugin in production ([#1450](https://github.com/vikejs/vike/issues/1450)) ([0304246](https://github.com/vikejs/vike/commit/03042466c25bb73f0017ac3ec4ad3e4c69902c75))
+* improve error message upon loading vike/plugin in production (fix [#1450](https://github.com/vikejs/vike/issues/1450)) ([4ed9533](https://github.com/vikejs/vike/commit/4ed95339121486983c3f877def91c1f5e638d007))
+* improve logic deciding when imports are transform ([62f4450](https://github.com/vikejs/vike/commit/62f44507619971908cbc435e33ae48e34209aa45))
+* make wrong process.env.NODE_ENV value a hard failure ([f3926bd](https://github.com/vikejs/vike/commit/f3926bd78ad345656ccd329177db056d1c67cfa3))
+* remove superfluous warning upon non-standard extension config file name ([dc46063](https://github.com/vikejs/vike/commit/dc46063d60efa9327bb3281af4e5570a3a2ea00c))
+* skip transpiling config files of extensions ([5e86965](https://github.com/vikejs/vike/commit/5e8696539a04f75938d90129389caf205d53664c))
+* small performance boost ([d754c6d](https://github.com/vikejs/vike/commit/d754c6dd0ded676575b592b78d538f8205057a13))
+
+
+
+## [0.4.159](https://github.com/vikejs/vike/compare/v0.4.158...v0.4.159) (2024-01-20)
+
+
+### Bug Fixes
+
+* add <Data> generic to PageContext types ([7e44992](https://github.com/vikejs/vike/commit/7e44992518df7f5b0303b85f9dbc8bcafb89b0d4))
+* deprecated old PageContext types ([c6fddba](https://github.com/vikejs/vike/commit/c6fddbafd5d03bb9df0401c8cf6e32111fdcd304))
+* remove <Page> generic ([7cb2120](https://github.com/vikejs/vike/commit/7cb21201ac49fd6ba768347312da1339dc23fec2))
+
+
+
+## [0.4.158](https://github.com/vikejs/vike/compare/v0.4.157...v0.4.158) (2024-01-18)
+
+
+### Features
+
+* pageContext.httpResponse.getReadableNodeStream() ([09af9e7](https://github.com/vikejs/vike/commit/09af9e7d0e375577fe7b097fbce1cd3cf2182b7d))
+
+
+
+## [0.4.157](https://github.com/vikejs/vike/compare/v0.4.156...v0.4.157) (2024-01-18)
+
+
+### Bug Fixes
+
+* apply env check also to eager imports (fix [#1423](https://github.com/vikejs/vike/issues/1423)) ([20674a7](https://github.com/vikejs/vike/commit/20674a7faf32d3854bf32eb29a348b32cfe36009))
+* enable user to opt-out Vike's rollupOutput.*Names settings ([#1421](https://github.com/vikejs/vike/issues/1421)) ([d07fbe8](https://github.com/vikejs/vike/commit/d07fbe827118677177ef1226afb5ba23fc86fd43))
+* fix and improve URL validation for `throw render()` and `throw redirect()` (fix [#1445](https://github.com/vikejs/vike/issues/1445)) ([4b753b8](https://github.com/vikejs/vike/commit/4b753b85143ffda30a0d8c5063f1acc1a429eb68))
+* fix root cause for extractAssetsRemoveQuery() bug (fix [#1420](https://github.com/vikejs/vike/issues/1420)) ([3275e1c](https://github.com/vikejs/vike/commit/3275e1c7921c715c4e8dd65331334f34ca1bcbbe))
+* improve client-side error handling ([9dcb1e1](https://github.com/vikejs/vike/commit/9dcb1e1f4354d4c81e9aaf04cc63dce8b183ef6b))
+* improve deprecation warning ([f230cb3](https://github.com/vikejs/vike/commit/f230cb35d811e20337c8fd8199a0ba018a71ebde))
+* improve error message upon invalid filename (fix [#1425](https://github.com/vikejs/vike/issues/1425)) ([04acbac](https://github.com/vikejs/vike/commit/04acbacf2c261b52963bccce9c5fa87019ebbe52))
+* pageContext._routeMatch for vite-plugin-vercel ([ad0534c](https://github.com/vikejs/vike/commit/ad0534cb45479408c6e63eccb8f313abb978ac31))
+* pick pageContext.urlLogical first (fix [#1436](https://github.com/vikejs/vike/issues/1436)) ([d8d55d2](https://github.com/vikejs/vike/commit/d8d55d27b018eddb55d1c7205d7fcb366bf4a1e5))
+* remove faulty crawl assert (fix [#1440](https://github.com/vikejs/vike/issues/1440)) ([e46716d](https://github.com/vikejs/vike/commit/e46716d832215f25148dd57d6d9cc1c2193c0970))
+* set ssr.external to true by default ([07b92e3](https://github.com/vikejs/vike/commit/07b92e3c2600c0874aa3101e4042503ba6ef2a31))
+* temporarily don't make ssr.external true by default ([1b7b3c5](https://github.com/vikejs/vike/commit/1b7b3c531035d3c4735a343f450a29e52bc87f15))
+
+
+
+## [0.4.156](https://github.com/vikejs/vike/compare/v0.4.155...v0.4.156) (2024-01-07)
+
+
+### Bug Fixes
+
+* update @brillout/vite-plugin-server-entry ([6fc93be](https://github.com/vikejs/vike/commit/6fc93be09ac4062e925e7ee9dd7339026384d6b6))
+
+
+
+## [0.4.155](https://github.com/vikejs/vike/compare/v0.4.154...v0.4.155) (2024-01-07)
+
+
+### Bug Fixes
+
+* update @brillout/vite-plugin-import-build -> @brillout/vite-plugin-server-entry ([81d8de1](https://github.com/vikejs/vike/commit/81d8de160354b565ceeccdf15f1efc7a99453db3))
+* whitelist @brillout/import from CJS/ESM error hint ([bb14de3](https://github.com/vikejs/vike/commit/bb14de39ed32ce31fa9362de9705bee79c16f748))
+
+
+
+## [0.4.154](https://github.com/vikejs/vike/compare/v0.4.153...v0.4.154) (2024-01-06)
+
+
+### Bug Fixes
+
+* apply vite.ssrFixStackTrace() to warning stack trace (fix [#1355](https://github.com/vikejs/vike/issues/1355)) ([6415b1c](https://github.com/vikejs/vike/commit/6415b1c3031b360e8fb77c4b70c0fe30aeca1fc7))
+* improve slow crawling warning ([5865113](https://github.com/vikejs/vike/commit/58651134ec827307c6aa67ce227995733fd4ebcd))
+* increase hook timeouts upon pre-rendering ([61f05c0](https://github.com/vikejs/vike/commit/61f05c0e4ed42ba72b226e6f0f52a14f4b51ecab))
+* reliable workaround for Rollup bug ([3e842bb](https://github.com/vikejs/vike/commit/3e842bbe6ef4a19bb0a3a0eb980a333ea2cbbb15))
+* remove superfluous and misleading assertion ([fe12f96](https://github.com/vikejs/vike/commit/fe12f966f76fd9a27c63432abe484370fa969076))
+* remove superfluous importBuild await ([#1404](https://github.com/vikejs/vike/issues/1404)) ([7fdfa41](https://github.com/vikejs/vike/commit/7fdfa410772baf71322dd347616cfa077f32b9fe))
+* show hint upon CJS/ESM errors ([#1358](https://github.com/vikejs/vike/issues/1358), fixes [#621](https://github.com/vikejs/vike/issues/621)) ([2043733](https://github.com/vikejs/vike/commit/2043733a2892bcbea35154fdcd7426c1b5e033da))
+* tolerate + anywhere in file paths (fix [#1407](https://github.com/vikejs/vike/issues/1407)) ([159c659](https://github.com/vikejs/vike/commit/159c6595199547db558248d8a3ebc2ca02be356d))
+* update @brillout/vite-plugin-import-build ([5f01f30](https://github.com/vikejs/vike/commit/5f01f30259cc90e6b85bf327104718a153f74544))
+* update @brillout/vite-plugin-import-build (fix [#1404](https://github.com/vikejs/vike/issues/1404)) ([f84370a](https://github.com/vikejs/vike/commit/f84370a310272636c87be93bdcc28b8e9e4a6ac3))
+* workaround Rollup bug ([01ab602](https://github.com/vikejs/vike/commit/01ab6020e6a46f80b1b4e6e0ca3c1f498aac5251))
+
+
+
+## [0.4.153](https://github.com/vikejs/vike/compare/v0.4.152...v0.4.153) (2023-12-31)
+
+
+### Bug Fixes
+
+* improve handling of redundant errors ([c410699](https://github.com/vikejs/vike/commit/c410699680a70de59abec3d90fe36bc88d1acd99))
+* improve handling of virtual modules ([#479](https://github.com/vikejs/vike/issues/479)) ([3d25618](https://github.com/vikejs/vike/commit/3d2561887127a5ba8564ba1a98309c77a5325922))
+* improve render abort logging ([415899b](https://github.com/vikejs/vike/commit/415899bf77d58d474b99f1c2c5dda41ee705a1f0))
+* mitigate risk of infinite reloading page ([c21cea2](https://github.com/vikejs/vike/commit/c21cea215cea832930563a1380f2e40f1b61ceea))
+* properly handle errors thrown in onHydrationEnd() and onPageTransition{Start,End}() ([ad532e0](https://github.com/vikejs/vike/commit/ad532e08272392afa150e2a25549657c8a346e24))
+* properly handle errors thrown in onRenderClient ([6f928f9](https://github.com/vikejs/vike/commit/6f928f9ee6c1eeaf8279e9ee3b8180d987ba10c0))
+* use simplier dynamic import (fix [#1393](https://github.com/vikejs/vike/issues/1393)) ([06c1fd5](https://github.com/vikejs/vike/commit/06c1fd57376891766792ecc2a3ae248ff0b231df))
+
+
+
+## [0.4.152](https://github.com/vikejs/vike/compare/v0.4.151...v0.4.152) (2023-12-26)
+
+
+### Bug Fixes
+
+* don't inject script preload tags for HTML-only pages (fix [#1379](https://github.com/vikejs/vike/issues/1379)) ([e8c6494](https://github.com/vikejs/vike/commit/e8c6494ca56befed80af98b987bf7be7582e3a44))
+
+
+### Features
+
+* cacheControl setting ([bb7fd09](https://github.com/vikejs/vike/commit/bb7fd09c46730d638b45a89f5db35f2ac4188f6b))
+* generic `<Data>` type for `onBeforePrerenderStart()` ([29f265b](https://github.com/vikejs/vike/commit/29f265b35832c7b882ab1a6414afef88f5cbc0b4))
+* redirect to URI without http protocal (closes [#1380](https://github.com/vikejs/vike/issues/1380)) ([58f404c](https://github.com/vikejs/vike/commit/58f404c2ebf82ca86b56d6cc603603d2008cc9cf))
+
+
+
+## [0.4.151](https://github.com/vikejs/vike/compare/v0.4.150...v0.4.151) (2023-12-22)
+
+
+### Bug Fixes
+
+* add vike:outDir debug logs ([92240b6](https://github.com/vikejs/vike/commit/92240b65573b0d22555245e5b3d57859bb46d489))
+* enable URL redirection that resolves to a URL with @ (fix [#1347](https://github.com/vikejs/vike/issues/1347)) ([469866a](https://github.com/vikejs/vike/commit/469866a3f8a30f8332c7aad002f69d9479250d96))
+* fix error message upon loading server-only module on the client-side ([#1335](https://github.com/vikejs/vike/issues/1335)) ([09d362e](https://github.com/vikejs/vike/commit/09d362eb1ab3932d0d994682b865f7be18fda7f8))
+* improve debug logs visual formatting ([222b1b2](https://github.com/vikejs/vike/commit/222b1b247a537d0fd02e6cc72dcd03cacf71442a))
+* make standalone builds easier ([#1165](https://github.com/vikejs/vike/issues/1165), [#1342](https://github.com/vikejs/vike/issues/1342)) ([f555646](https://github.com/vikejs/vike/commit/f5556463959a35f82b9c78a29ecd15e809ce8401))
+* remove assertion (fix [#1359](https://github.com/vikejs/vike/issues/1359)) ([63b1c32](https://github.com/vikejs/vike/commit/63b1c32b10ed90694c8722430cd829c13e0790ef))
+* remove wrong assertion ([f91537e](https://github.com/vikejs/vike/commit/f91537ed9869af7cd8407b9c6899819b7b090d28))
+* sound URL pathname resolution implementation ([#1347](https://github.com/vikejs/vike/issues/1347)) ([42c1df1](https://github.com/vikejs/vike/commit/42c1df1462a923b954d254e81960370a5ae19cfc))
+* update @brillout/vite-plugin-import-build ([c954cbc](https://github.com/vikejs/vike/commit/c954cbc49da08f805e96cdb6d9a7b8bd16504be4))
+
+
+### Features
+
+* `.server.js` and `.client.js` [#1296](https://github.com/vikejs/vike/issues/1296) (closes [#744](https://github.com/vikejs/vike/issues/744)) ([6178b40](https://github.com/vikejs/vike/commit/6178b403fd08bc9c4ea90483b3808a5b70bc330c))
+* data hook ([b61a87e](https://github.com/vikejs/vike/commit/b61a87e70cb4b6cb3c6fe86b58085e4c42239ff4))
+
+
+### Performance Improvements
+
+* improve crawl speed ([77e1875](https://github.com/vikejs/vike/commit/77e1875cee7fd92e41b1ff5f0d7a7e521f506a12))
+
+
+
 ## [0.4.150](https://github.com/vikejs/vike/compare/v0.4.149...v0.4.150) (2023-12-08)
 
 

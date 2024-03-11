@@ -5,8 +5,8 @@ export { plugin as ssr }
 export type { ConfigVikeUserProvided as UserConfig }
 export { PROJECT_VERSION as version } from './utils.js'
 
-import type { Plugin } from 'vite'
-import { assertUsage, markEnvAsVite } from './utils.js'
+import { version, type Plugin } from 'vite'
+import { assertNodeEnv_onVikePluginLoad, assertUsage, assertVersion, markEnvAsVikePluginLoaded } from './utils.js'
 import { buildConfig } from './plugins/buildConfig.js'
 import { previewConfig } from './plugins/previewConfig.js'
 import { autoFullBuild } from './plugins/autoFullBuild.js'
@@ -23,12 +23,14 @@ import { suppressRollupWarning } from './plugins/suppressRollupWarning.js'
 import { setGlobalContext } from './plugins/setGlobalContext.js'
 import { importBuild } from './plugins/importBuild/index.js'
 import { commonConfig } from './plugins/commonConfig.js'
-import { extensionsAssets } from './plugins/extensionsAssets.js'
 import { baseUrls } from './plugins/baseUrls.js'
 import { envVarsPlugin } from './plugins/envVars.js'
 import pc from '@brillout/picocolors'
+import { fileEnv } from './plugins/fileEnv.js'
 
-markEnvAsVite()
+assertNodeEnv_onVikePluginLoad()
+markEnvAsVikePluginLoaded()
+assertViteVersion()
 
 // Return as `any` to avoid Plugin type mismatches when there are multiple Vite versions installed
 function plugin(vikeConfig?: ConfigVikeUserProvided): any {
@@ -37,7 +39,7 @@ function plugin(vikeConfig?: ConfigVikeUserProvided): any {
     ...commonConfig(),
     importUserCode(),
     ...devConfig(),
-    buildConfig(),
+    ...buildConfig(),
     previewConfig(),
     ...autoFullBuild(),
     packageJsonFile(),
@@ -48,9 +50,9 @@ function plugin(vikeConfig?: ConfigVikeUserProvided): any {
     suppressRollupWarning(),
     setGlobalContext(),
     ...importBuild(),
-    extensionsAssets(),
     baseUrls(vikeConfig),
-    envVarsPlugin()
+    envVarsPlugin(),
+    fileEnv()
   ]
   return plugins
 }
@@ -75,3 +77,8 @@ Object.defineProperty(plugin, 'apply', {
     )
   }
 })
+
+// node_modules/vike/package.json#peerDependencies.vite isn't enough as users can ignore it
+function assertViteVersion() {
+  assertVersion('Vite', version, '4.4.0')
+}

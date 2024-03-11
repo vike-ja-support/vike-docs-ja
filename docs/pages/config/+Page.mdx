@@ -1,0 +1,245 @@
+import { Link, Construction } from '@brillout/docpress'
+import { UiFrameworkVikeExtension, UiFrameworkVikeExtensionNames } from '../../components'
+
+Deep dive into config files and how they work.
+
+The list of configs can be found at:
+ - <Link href="/settings" />
+ - <Link href="/hooks" />
+
+
+## Inheritance
+
+You can apply configurations to all your pages, a subset of pages, or one page.
+
+For example:
+
+```js
+// /pages/+config.js
+
+import Layout from '../layouts/LayoutDefault'
+
+// This config file applies to all pages (/pages/**)
+
+export default {
+  // Set a default <Layout>
+  Layout,
+  /* To disable SSR for all pages (by default):
+  ssr: false */
+}
+```
+
+```js
+// /pages/admin-panel/+config.js
+
+// This config file applies to all pages living at /pages/admin-panel/**
+
+import Layout from '../../layouts/LayoutPanel.jsx'
+
+export default {
+  // Disable SSR for the admin panel pages
+  ssr: false,
+  // The <Layout> for the admin panel pages (overriding the default <Layout>)
+  Layout
+}
+```
+
+```js
+// /pages/product/@id/+config.js
+
+// In principle, this config file applies to all pages /pages/product/@id/**
+// but assuming there is only one page at /pages/product/@id/+Page.js
+// this config file applies only to that one page.
+
+import Layout from './Layout'
+
+export default {
+  // Set the <Layout> of the product page (overriding the default <Layout>)
+  Layout,
+  /* We don't need this because `ssr` is `true` by default
+  ssr: true */
+}
+```
+
+> See also:
+> - <Link href="/Layout" />
+> - <Link href="/ssr" />
+
+For an improved file and config organization, consider using a <Link href="/file-structure#domain-driven">domain-driven file structure</Link>.
+
+You can even use two completely different rendering strategy: some pages can use Vue without SSR while other pages can use React with SSR.
+
+```js
+// /pages/admin-panel/+config.js
+
+import vikeVue from 'vike-vue/config'
+
+export default {
+  ssr: false,
+  extends: [vikeVue]
+}
+```
+
+```js
+// /pages/product/@id/+config.js
+
+import vikeReact from 'vike-react/config'
+
+export default {
+  ssr: true,
+  extends: [vikeReact]
+}
+```
+
+
+## Other `+` files
+
+For convenience, you can mark a file to be a config value. For example you can replace this:
+
+```js
+// /pages/product/@id/+config.js
+
+import Layout from './Layout'
+export default { Layout }
+```
+```js
+// /pages/product/@id/Layout.js
+
+export default Layout
+
+function Layout() { /* ... */ }
+```
+
+With the following (`Layout.js` renamed to `+Layout.js`):
+
+```js
+// /pages/product/@id/+Layout.js
+
+export default Layout
+
+function Layout() { /* ... */ }
+```
+
+It's just convenience and it's equivalent whehter you define the page's <Link href="/Layout">`<Layout>`</Link>:
+- By creating a `+config.js` file with `export default { Layout }`, or
+- by creating a `+Layout.js` file.
+
+
+## Pointer imports
+
+Internally, Vike transforms this:
+
+```js
+// /pages/+config.js
+// Environment: config
+
+import Layout from '../layouts/LayoutDefault.jsx'
+
+export default {
+  Layout
+}
+```
+
+Into that:
+
+```diff
+  // /pages/+config.js
+  // Environment: config
+
+- import Layout from '../layouts/LayoutDefault.jsx'
++ const Layout = 'import:../layouts/LayoutDefault.jsx:default'
+
+  export default {
+    Layout
+  }
+```
+
+To understand why, consider a `LayoutDefault.jsx` implementation:
+
+```js
+// /layouts/LayoutDefault.jsx
+// Environment: client/server
+
+export default LayoutDefault
+
+function LayoutDefault({ children }) {
+  return <>
+    <div id="sidebar">{/* ... */}</div>
+    <div id="content">{children}</div>
+  </>
+}
+```
+
+Because `LayoutDefault.jsx` is client-side (and/or server-side) code, it doesn't make sense to load `LayoutDefault.jsx` when Vike loads `+config.js`.
+
+It's similar to when you import images:
+
+```js
+import logo from '../images/logo.svg'
+// When you import an image, you don't really import it:
+console.log(logo) // Prints 'http://localhost:3000/assets/logo.svg'
+```
+
+Vike transforms imports inside `+config.js` file to be pointer imports only if their import path resolves to a `.jsx`, `.vue`, `.svg`, or any file that doesn't end with `.js` and `.ts` (and their variants `.mjs`/`.cjs`/`.mts`/`.cts`).
+
+```js
+// /pages/+config.js
+// Environment: config
+
+// Resolves to the file LayoutDefault.jsx (a .jsx file) => pointer import
+import Layout from '../layouts/LayoutDefault'
+// Resolves to the file ssr.js (a .js file) => normal/real import
+import ssr from './ssr'
+
+console.log(Layout) // Prints 'import:../layouts/LayoutDefault:default'
+console.log(ssr) // Prints `false`
+
+export default {
+  Layout,
+  ssr
+}
+```
+```js
+// /pages/ssr.js
+// Environment: config
+
+export default false
+```
+
+A `.jsx` or `.vue` file is always code meant for the client- and/or server-side (it's never config code), thus it makes sense that `.jsx` and `.vue` imports are always pointer imports.
+
+> This applies only to `+config.js` files. Imports in other files are real imports.
+
+You can also mark an import to be a pointer import:
+
+```js
+// /pages/+config.js
+// Environment: config
+
+import ssr from './ssr' with { type: 'pointer' }
+console.log(ssr) // Prints 'import:./ssr:default'
+```
+
+<Construction>The `with { type: 'pointer' }` import attribute isn't implement yet, see workaround at [#1500](https://github.com/vikejs/vike/issues/1500).</Construction>
+
+Note that config code in itself is never included in runtimes:
+
+```js
+// /pages/some-page/+config.js
+
+// Such CSS import doesn't have any effect. CSS files should be imported in
+// runtime files such as +Page.js instead.
+import './some.css'
+
+// This log is printed only when Vike loads this +config.js file (at development and when
+// building your app). This logs isn't included in the client runtime nor server runtime.
+// Consequently, you won't see this log in production.
+console.log("I will never be logged in production")
+```
+
+
+## See also
+
+- <Link href="/settings" />
+- <Link href="/hooks" />
+- <Link href="/file-structure#domain-driven" />

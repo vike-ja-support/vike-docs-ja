@@ -18,6 +18,7 @@ export type { FilePathResolved }
 export type { FilePath }
 
 import type { ConfigValueImported, ConfigValueSerialized } from './serialize/PageConfigSerialized.js'
+import type { LocationId } from '../../node/plugin/plugins/importUserCode/v1-design/getVikeConfig/filesystemRouting.js'
 
 type PageConfigBase = {
   pageId: string
@@ -26,12 +27,11 @@ type PageConfigBase = {
     routeString: string
     definedBy: string
   }
+  configValues: ConfigValues
 }
 
 /** Page config data structure available at runtime */
 type PageConfigRuntime = PageConfigBase & {
-  /** All loaded config values */
-  configValues: ConfigValues
   /** Load config values that are lazily loaded such as config.Page */
   loadConfigValuesAll: () => Promise<{
     configValuesImported: ConfigValueImported[]
@@ -46,7 +46,6 @@ type PageConfigRuntimeLoaded = PageConfigRuntime & {
 
 /** Page config data structure available at build-time */
 type PageConfigBuildTime = PageConfigBase & {
-  configValues: ConfigValues
   configValueSources: ConfigValueSources
   configValuesComputed: ConfigValuesComputed
 }
@@ -59,6 +58,10 @@ type PageConfigGlobalBuildTime = {
   configValueSources: ConfigValueSources
 }
 
+/** In what environment(s) the config value is loaded.
+ *
+ * https://vike.dev/meta
+ */
 type ConfigEnv = {
   client?: boolean
   server?: boolean
@@ -74,10 +77,12 @@ type ConfigValueSource = {
   value?: unknown
   configEnv: ConfigEnvInternal
   definedAt: DefinedAtFileFullInfo
+  locationId: LocationId
   /** Wether the config value is loaded at runtime, for example config.Page or config.onBeforeRender */
   valueIsImportedAtRuntime: boolean
   /** Whether the config value is a file path, for example config.client */
   valueIsFilePath?: true
+  valueIsDefinedByValueFile: boolean
 }
 type DefinedAtFileFullInfo = DefinedAtFile & FilePath & { fileExportName?: string }
 type ConfigValueSources = Record<
@@ -125,7 +130,7 @@ type FilePath = {
    *
    * Its value is equivalent to `filePath.filePathRelativeToUserRootDir ?? filePath.importPathAbsolute`, for example:
    *   - `vike-react/config`, or
-   *   - `/pages/+config.h.js`.
+   *   - `/pages/+config.js`.
    */
   filePathAbsoluteVite: string
   /** The file's path, absolute from the filesystem root.

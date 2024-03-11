@@ -36,6 +36,7 @@ Unique Vike features:
  - Low-level primitives allowing users to deeply integrate with data fetching tools.
    - For example, Vike sponsors use it to deeply integrate Relay. (Facebook's internal framework deeply integrates with Relay in ways that aren't possible with Next.js.)
  - URL rewriting for both [novel DX and novel UX](https://twitter.com/brillout/status/1687431520569425920) around authentication and authorization
+ - Domain-driven file structure
 
 Marketing boost of using "Vike - The Open Framework" &mdash; collaboration and openness being one of Vike's core value.
 
@@ -59,6 +60,7 @@ Minor features that can be life changing for some users:
 - `pageContext.isBackwardsNavigation` (https://vike.dev/pageContext) for backwards/forward page transition animations
 - Vike can be loaded twice (or more) on the server-side, (some deployment architectures need this)
 - Catches and interrupts infinite loops of URL redirections and URL rewrites
+- Supports [`@vitejs/plugin-legacy`](https://github.com/vitejs/vite/tree/main/packages/plugin-legacy).
 
 And lots of details:
 - [Automatic frontend deployment synchronization](https://vike.dev/deploy-sync)

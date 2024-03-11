@@ -1,0 +1,75 @@
+import { Link } from '@brillout/docpress'
+import { UiFrameworkVikeExtension } from '../../components'
+
+Default value: `true`.  
+Provided by: <UiFrameworkVikeExtension /> (or <Link href="#without-vike-extension">yourself</Link>).
+
+Setting to enable/disable Server-Side Rendering (SSR). You can disable SSR for all your pages or only for some pages.
+
+> **What is SSR?** If you're unfamiliar with SSR then check out [Dan Abramov's explanation of SSR, HTML Streaming, and Progressive Rendering](https://github.com/reactwg/react-18/discussions/37). (While it explains it in the context of React, we still recommend reading it if you use a UI framework other than React.)
+
+> Alternatively:
+>  - You can use <Link href="/ClientOnly">`ClientOnly`</Link> to render and load some components only on the client-side while rendering the rest of the page with SSR.
+>  - You can <Link href="/pre-rendering">pre-render</Link> some of (or all) your pages.
+
+To disable SSR for all your pages:
+
+```js
+// /pages/+config.js
+
+export default {
+  // Applies to all pages
+  ssr: false
+}
+```
+
+To disable SSR only for some pages:
+
+```js
+// /pages/admin-panel/+config.js
+
+export default {
+  // Applies only to all pages living under /pages/admin-panel/
+  ssr: false
+}
+```
+
+```bash
+# Pages rendered and loaded only on the client-side
+/pages/admin-panel/products/+Page.js
+/pages/admin-panel/users/+Page.js
+
+# Pages rendered and loaded on both client- and server-side. (Because they
+# don't live under /pages/admin-panel/ thus the `ssr` setting doesn't apply.)
+/pages/index/+Page.js
+/pages/about/+Page.js
+```
+
+For an improved file and config organization, you can consider using a <Link href="/file-structure#domain-driven">domain-driven file structure</Link>.
+
+
+## Without Vike extension
+
+In case you don't use a <UiFrameworkVikeExtension />, you can implement the `ssr` setting yourself.
+
+Examples:
+ - [`vike-react` source code](https://github.com/vikejs/vike-react/blob/main/packages/vike-react)
+ - [`vike-vue` source code](https://github.com/vikejs/vike-vue/blob/main/packages/vike-vue)
+ - [`vike-solid` source code](https://github.com/vikejs/vike-solid/blob/main/vike-solid)
+
+
+## See also
+
+SSR:
+
+- [Dan Abramov's explanation of SSR, HTML Streaming, and Progressive Rendering](https://github.com/reactwg/react-18/discussions/37)
+
+Pre-rendering:
+
+- <Link href="/prerender" />
+- <Link href="/pre-rendering" />
+
+HTML Streaming:
+
+- <Link href="/stream" />
+- <Link href="/streaming" />

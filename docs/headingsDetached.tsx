@@ -5,6 +5,18 @@ import type { HeadingDetachedDefinition } from '@brillout/docpress'
 
 const headingsDetached = [
   {
+    title: 'Why Vike',
+    url: '/why'
+  },
+  {
+    title: 'Consulting',
+    url: '/consulting'
+  },
+  {
+    title: 'Next.js Comparison',
+    url: '/nextjs-comparison'
+  },
+  {
     title: <code>useClientRouter()</code>,
     url: '/useClientRouter'
   },
@@ -19,6 +31,18 @@ const headingsDetached = [
   {
     title: 'HTML Streaming',
     url: '/html-streaming'
+  },
+  {
+    title: '`stream`',
+    url: '/stream'
+  },
+  {
+    title: 'Preloading',
+    url: '/preload'
+  },
+  {
+    title: 'Layouts',
+    url: '/layouts'
   },
   {
     title: 'SPA vs SSR vs HTML',
@@ -51,7 +75,7 @@ const headingsDetached = [
   {
     title: (
       <>
-        <code>+config.h.js</code> code splitting
+        <code>+config.js</code> code splitting
       </>
     ),
     url: '/config-code-splitting'
@@ -133,7 +157,7 @@ const headingsDetached = [
     ),
     url: '/pageContext-manipulation'
   },
-  { title: 'Server-Side Rendering (SSR)', url: '/ssr' },
+  { title: 'Server-Side Rendering (SSR)', url: '/SSR' },
   { title: 'TypeScript', url: '/typescript' },
   {
     title: (
@@ -182,14 +206,6 @@ const headingsDetached = [
   {
     title: 'Common Problems',
     url: '/common-problems'
-  },
-  {
-    title: (
-      <>
-        <code>prerender()</code> hook
-      </>
-    ),
-    url: '/prerender'
   },
   {
     title: <code>doNotPrerender</code>,
@@ -268,6 +284,10 @@ const headingsDetached = [
     url: '/NODE_ENV'
   },
   {
+    title: 'Header file (`.h.js`)',
+    url: '/header-file'
+  },
+  {
     title: (
       <>
         Header file (<code>.h.js</code>), import from same file
@@ -304,7 +324,7 @@ const headingsDetached = [
     url: '/migration/0.5'
   },
   {
-    title: "Vite's Lazy Transpiling",
+    title: 'Lazy Transpiling',
     url: '/lazy-transpiling'
   },
   {
@@ -328,13 +348,13 @@ const headingsDetached = [
     url: '/vike-packages'
   },
   {
-    title: 'Abort',
-    url: '/abort',
-    sectionTitles: ['`throw redirect()` VS `throw render()`']
+    title: 'Extensions',
+    url: '/extensions'
   },
   {
-    title: '`.server.js` & `.client.js`',
-    url: '/file-env'
+    title: 'Abort',
+    url: '/abort',
+    sectionTitles: ['`throw redirect()` VS `throw render()` VS `navigate()`']
   },
   {
     title: 'Custom Exports/Hooks',
@@ -366,11 +386,60 @@ const headingsDetached = [
     url: '/extends'
   },
   {
-    title: 'RPC',
-    url: '/RPC'
-  },
-  {
     title: 'Image Optimizing',
     url: '/img'
+  },
+  {
+    title: 'Access `pageContext` anywhere',
+    url: '/pageContext-anywhere'
+  },
+  {
+    title: 'Client-only Components',
+    url: '/client-only-components'
+  },
+  {
+    title: 'Render Modes (SPA, SSR, SSG, HTML-only)',
+    url: '/render-modes',
+    sectionTitles: ['HTML-only', 'SPA', 'SSR']
+  },
+  {
+    title: '`lang`',
+    url: '/lang'
+  },
+  {
+    title: '`<Wrapper>`',
+    url: '/Wrapper'
+  },
+  {
+    title: 'Server Routing VS Client Routing',
+    url: '/server-routing-vs-client-routing'
+  },
+  {
+    title: 'Add to existing Vite app',
+    url: '/add'
+  },
+  {
+    title: 'Tour',
+    url: '/tour'
+  },
+  {
+    title: 'Vue Tour',
+    url: '/vue-tour'
+  },
+  {
+    title: 'React Tour',
+    url: '/react-tour'
+  },
+  {
+    title: '`onCreateApp()`',
+    url: '/onCreateApp'
+  },
+  {
+    title: '`prerender`',
+    url: '/prerender-config'
+  },
+  {
+    title: '`getGlobalContextSync()` & `getGlobalContextAsync()` ',
+    url: '/getGlobalContext'
   }
 ] satisfies HeadingDetachedDefinition[]

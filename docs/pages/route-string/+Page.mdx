@@ -1,0 +1,82 @@
+import { Link } from '@brillout/docpress'
+import RouteDomainDriven from '../../components/RouteDomainDriven.mdx'
+
+For a page `/pages/film/+Page.js`, a Route String can be defined in an adjacent file `/pages/film/+route.js` .
+
+```js
+// /pages/film/+route.js
+
+// Matches the URLs:
+//  /film/1
+//  /film/2
+//  /film/a
+//  /film/b
+//  ...
+export default '/film/@filmId'
+```
+
+The value of `filmId` is available at `pageContext.routeParams.filmId`.
+
+You can define:
+ - Multiple parameters, for example `/film/@category/@name`.
+ - <Link href="#globs">Globs</Link>, for example `/product/*`.
+
+For more advanced routing logic, consider using a [Route Function](/route-function) instead of Route String.
+
+
+## Globs
+
+```js
+// /pages/product/+route.js
+
+// Match URLs that start with /product/* such as:
+//   /product/42
+//   /product/1337/details
+//   /product/2048/some/deeply/nested/path
+//   ...
+export default '/product/*'
+```
+
+The value of the glob is available at `pageContext.routeParams['*']`.
+
+> The difference between `/product/*` and `/product/@productId` is that the former includes nested paths whereas the latter doesn't.
+> For example `/product/42/details` matches `/product/*` but doesn't match `/product/@productId`.
+
+If you define multiple globs, then the glob values are available at `pageContext.routeParams['*1']`, `pageContext.routeParams['*2']`, etc.
+
+
+## Catch-All
+
+You can use a <Link href="#globs">glob</Link> to catch all URLs:
+
+```js
+// /pages/catch-all/+route.js
+
+// Route all URLs to a single page
+export default '*'
+```
+
+```js
+// /pages/catch-all/+Page.js
+
+// The only page of our app.
+export { Page }
+
+// ...
+```
+
+
+## Precedence
+
+Upon Route String conflicts, Vike chooses the first route from most specific to least specific.
+
+See <Link href="/routing-precedence" />.
+
+
+## Escape `@`
+
+The special character `@` cannot be escaped, use a [Route Function](/route-function) instead.
+
+## Domain-driven file structure
+
+<RouteDomainDriven />

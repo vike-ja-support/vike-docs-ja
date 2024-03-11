@@ -1,0 +1,163 @@
+import { Link } from '@brillout/docpress'
+import { UiFrameworkVikeExtension } from '../../components'
+
+For advanced apps we recommend a domain-driven file structure using multiple `pages/` directories,
+while for basic apps we recommend using a single `pages/` directory.
+
+## Basic Apps
+
+```bash
+# Landing page
+/pages/index/+Page.js
+/pages/index/SomeComponentForLandingPage.js
+/pages/index/**/* # More files specific to the landing page
+# About page
+/pages/about/+Page.js
+/pages/about/SomeComponentForAboutPage.js
+/pages/about/**/* # More files specific to the about page
+# Other pages
+/pages/**/+Page.js
+
+# Error page
+/pages/_error/+Page.js
+
+# Components shared by several pages
+/components/
+
+# Server code (Express.js/Fastify/...)
+/server/
+```
+
+
+## Domain-driven
+
+```bash
+# Marketing pages
+/marketing/pages/index/+Page.js # URL: /
+/marketing/pages/about/+Page.js # URL: /about
+/marketing/pages/jobs/+Page.js # URL: /jobs
+/marketing/+config.js # Configures the URL of the pages aboves, see below
+
+# Auth related code & pages
+/auth/pages/signup/+Page.js
+/auth/pages/login/+Page.js
+/auth/components/UserInfo.js
+/auth/db/fetchUser.js
+
+# All code related to products
+/products/pages/index/+Page.js
+/products/pages/product/+Page.js
+/products/pages/product/+route.js
+/products/db/fetchProduct.js
+/products/db/fetchProductList.js
+
+# Components shared accross domains
+/components/
+# Server code (Express.js/Fastify/...)
+/server/
+```
+
+```js
+// /marketing/+config.js
+
+// Route to /* instead of /marketing/*
+export default {
+  filesystemRoutingRoot: '/'
+}
+```
+
+> See <Link href="/filesystemRoutingRoot" />.
+
+```js
+// /products/pages/product/+route.js
+
+export default '/product/@id'
+```
+
+Resulting route table:
+
+```
+PROJECT FILES                               ROUTE
+================================            ============
+/marketing/pages/index/+Page.js             /
+/marketing/pages/about/+Page.js             /about
+/marketing/pages/jobs/+Page.js              /jobs
+
+/auth/pages/signup/+Page.js                 /auth/signup
+/auth/pages/login/+Page.js                  /auth/login
+
+/products/pages/index/+Page.js              /products
+/products/pages/product/+Page.js            /product/@id
+```
+
+Such domain-driven file structure is also convenient for setting different default configurations.
+
+```bash
+# Defaults
+/marketing/pages/+title.js
+/marketing/pages/+ssr.js
+/marketing/pages/+prerender.js
+# Pages
+/marketing/pages/index/+Page.js
+/marketing/pages/about/+Page.js
+/marketing/pages/jobs/+Page.js
+
+# Defaults
+/admin-panel/pages/+title.js
+/admin-panel/pages/+config.js
+# Pages
+/admin-panel/pages/index/+Page.js
+/admin-panel/pages/edit-product/+Page.js
+/admin-panel/pages/database/+Page.js
+```
+
+Note how <Link href="/config#inheritance">config inheritance</Link> applies:
+- The `/marketing/pages/+*.js` files apply as default to all pages living at `/marketing/pages/**`.
+- The `/admin-panel/pages/+*.js` files apply as default to all pages living at `/admin-panel/pages/**`.
+
+
+Example:
+ - <Link href='/examples/file-structure-domain-driven/' />
+
+
+## `src/pages/`
+
+You can embed `pages/` in `src/`:
+
+```bash
+/src/pages/index/+Page.js # => URL /
+/src/pages/about/+Page.js # => URL /about
+```
+
+See <Link href="/filesystem-routing" /> for more information.
+
+
+## Without Vike extensions
+
+In case you don't use a <UiFrameworkVikeExtension />, we recommend placing your UI framework integration code in a `renderer/` directory.
+
+```bash
+# Same as above
+/pages/
+/components/
+/server/
+
+# Code that specifies how pages are rendered
+/renderer/+onRenderHtml.js
+/renderer/+onRenderClient.js
+/renderer/PageShell.{jsx,vue}  # React/Vue/... component that wraps the `Page` component
+/renderer/PageShell.css
+/renderer/Header.{jsx,vue} # Website header used for every page
+/renderer/Footer.{jsx,vue} # Website footer used for every page
+/renderer/logo.svg # Website logo (favicon and used by <Header>)
+```
+
+The hooks `/renderer/+onRender{Html,Client}.js` apply as default to all pages `/pages/**/+Page.js`.
+
+The `renderer/` directory doesn't add any functionality: defining the hooks `+onRender{Html,Client}.js` at `/renderer/` is equivalent to defining them at `/pages/` or `/`. It's just an optional convenience for moving rendering logic outside of `pages/`: in order to avoid cluttering the `pages/` directory and to organize and put all rendering code in one place.
+
+
+## See also
+ - <Link href="/routing" />
+ - <Link href="/filesystem-routing" />
+ - <Link href="/filesystemRoutingRoot" />

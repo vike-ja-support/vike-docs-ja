@@ -3,11 +3,13 @@ export { autoFullBuild }
 import { build } from 'vite'
 import type { InlineConfig, Plugin, ResolvedConfig } from 'vite'
 import { assertWarning } from '../utils.js'
-import { prerenderFromAutoFullBuild, prerenderForceExit } from '../../prerender/runPrerender.js'
+import { runPrerenderFromAutoFullBuild, runPrerender_forceExit } from '../../prerender/runPrerender.js'
 import { getConfigVike } from '../../shared/getConfigVike.js'
 import type { ConfigVikeResolved } from '../../../shared/ConfigVike.js'
 import { isViteCliCall, getViteConfigFromCli } from '../shared/isViteCliCall.js'
 import pc from '@brillout/picocolors'
+import { logErrorHint } from '../../runtime/renderPage/logErrorHint.js'
+import { manifestTempFile } from './buildConfig.js'
 
 let forceExit = false
 
@@ -49,7 +51,7 @@ function autoFullBuild(): Plugin[] {
         order: 'post',
         handler() {
           if (forceExit) {
-            prerenderForceExit()
+            runPrerender_forceExit()
           }
         }
       }
@@ -64,10 +66,11 @@ async function triggerFullBuild(
 ) {
   if (config.build.ssr) return // already triggered
   if (isDisabled(configVike)) return
-  /* Is this @vitejs/plugin-legacy workaround still needed? Should we re-implement it?
-  // vike.json missing => it isn't a `$ vite build` call (e.g. @vitejs/plugin-legacy calls Vite's build() API) => skip
-  if (!bundle['vike.json']) return
-  */
+  // Workaround for @vitejs/plugin-legacy
+  //  - The legacy plugin triggers its own Rollup build for the client-side.
+  //  - The legacy plugin doesn't generate a manifest => we can use that to detect the legacy plugin build.
+  //  - Issue & reproduction: https://github.com/vikejs/vike/issues/1154#issuecomment-1965954636
+  if (!bundle[manifestTempFile]) return
 
   const configFromCli = !isViteCliCall() ? null : getViteConfigFromCli()
   const configInline = {
@@ -79,16 +82,22 @@ async function triggerFullBuild(
     }
   } satisfies InlineConfig
 
-  await build({
-    ...configInline,
-    build: {
-      ...configInline.build,
-      ssr: true
-    }
-  })
+  try {
+    await build({
+      ...configInline,
+      build: {
+        ...configInline.build,
+        ssr: true
+      }
+    })
+  } catch (err) {
+    console.error(err)
+    logErrorHint(err)
+    process.exit(1)
+  }
 
   if (configVike.prerender && !configVike.prerender.disableAutoRun) {
-    await prerenderFromAutoFullBuild({ viteConfig: configInline })
+    await runPrerenderFromAutoFullBuild({ viteConfig: configInline })
     forceExit = true
   }
 }

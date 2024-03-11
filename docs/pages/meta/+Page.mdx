@@ -1,0 +1,492 @@
+import { UiFrameworkVikeExtension, UiFrameworkVikeExtensionNames } from '../../components'
+import { Link, RepoLink } from '@brillout/docpress'
+
+> Using `meta` is a powerful and advanced technique: generally, we recommend using <Link href="/extensions">Vike extensions</Link> instead.
+
+`meta` enables:
+ - **New settings**.
+   - <Link href="#example-dataendpointurl" doNotInferSectionTitle />
+   - <Link href="#example-sql" doNotInferSectionTitle />
+   - <Link href="#example-title-and-description" doNotInferSectionTitle />
+   - <Link href="#example-layout" doNotInferSectionTitle />
+ - **New hooks**.
+   - Example: `onInit()` or `onBeforeFetchingData()`.
+ - **Modifying the environment of existing hooks**.
+   - <Link href="#example-modify-data-env" doNotInferSectionTitle />
+
+
+## Example: `dataEndpointUrl`
+
+This example showcases a simple data fetching logic that uses URL data endpoints (e.g. a RESTful API).
+
+```js
+// /pages/countries/+dataEndpointUrl.js
+// Environment: server
+
+export default 'https://restcountries.com/v3.1/all'
+```
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  meta: {
+    dataEndpointUrl: {
+      env: {
+        server: true,
+        // Load the value of /pages/**/+dataEndpointUrl.js only on the server
+        client: false
+      }
+    }
+  }
+}
+```
+
+```js
+// /pages/+data.js
+// Environment: server
+
+export { data }
+
+import fetch from 'node-fetch'
+
+async function data(pageContext) {
+  // The value exported by /pages/countries/+dataEndpointUrl.js is
+  // available at pageContext.config.dataEndpointUrl
+  const response = await fetch(pageContext.config.dataEndpointUrl)
+  // ...
+}
+```
+
+## Example: `sql`
+
+Similarly to the previous example, another common use case is to enable pages to define their data requirements as SQL queries.
+
+```js
+// /pages/product/@id/+sql.js
+export const sql = (id) => `SELECT { name, price } FROM products WHERE id = "${id}";`
+/* Or with an ORM:
+export const sql = { modelName: 'Product', select: ['name', 'price'], where: { id } } */
+```
+
+```js
+// /pages/user/@id/+sql.js
+export const sql = (id) => `SELECT { firstName, lastName } FROM users WHERE id = "${id}";`
+/* Or with an ORM:
+export const sql = { modelName: 'User', select: ['firstName', 'lastName'], where: { id } } */
+```
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  meta: {
+    sql: {
+      env: {
+        server: true,
+        // Load the value of /pages/**/+sql.js only on the server
+        client: false
+      }
+    }
+  }
+}
+```
+
+```js
+// /pages/+onBeforeRender.js
+// Environment: server
+
+export { onBeforeRender }
+
+import { runQuery } from 'some-sql-engine'
+
+async function onBeforeRender(pageContext) {
+  // The value exported by /pages/**/+sql.js is available at pageContext.config.sql
+  const { id } = pageContext.routeParams
+  const { sql } = pageContext.config
+  const query = sql(id)
+  const data = await runQuery(query)
+  // ...
+}
+```
+
+
+## Example: `title` and `description`
+
+In order to define the tags `<title>` and `<meta name="description">` of a page's HTML, you can create new settings `title` and `description`.
+
+> If you use a <UiFrameworkVikeExtension/>, then you don't need to create the `title` and `description` settings as they are already created by <UiFrameworkVikeExtensionNames />. You can still read this section as it's a good example for showcasing `meta`.
+
+We first show how the settings `title` and `description` are used and then their implementation.
+
+#### Usage
+
+```js
+// /pages/about-us/+title.js
+
+export default 'About Us'
+```
+
+```js
+// /pages/about-us/+description.js
+
+export default 'Who we are, our values, and what we stand for.'
+```
+
+> You can also use `+config.js` instead of creating the files `+title.js` and `+description.js`:
+>
+> ```js
+> // /pages/about/+config.js
+>
+> export default {
+>   title: 'About Us',
+>   description: 'Who we are, our values, and what we stand for.'
+> }
+> ```
+>
+> See <Link href="/config" />.
+
+Your pages can also use data that was dynamically fetched in order to determine `<title>` and `<meta name="description">`:
+
+```js
+// /pages/product/+title.js
+
+export default pageContext => pageContext.data.product.name
+```
+```js
+// /pages/product/+description.js
+
+export default pageContext => {
+  const { product } = pageContext.data
+  return `${product.name} - ${product.description}`
+}
+```
+
+#### Implementation
+
+```ts
+// /pages/+config.ts
+
+import type { Config } from 'vike/types'
+
+export default {
+  meta: {
+    title: {
+      // Make the value of `title` available on both the server- and client-side
+      env: { server: true, client: true }
+    },
+    description: {
+      // Make the value of `description` available only on the server-side
+      env: { server: true }
+    }
+  }
+} satisfies Config
+```
+
+```js
+// /pages/+onRenderClient.js
+// Environment: client
+
+export { onRenderClient }
+
+import { getTitle } from './utils'
+
+function onRenderClient(pageContext) {
+  // Update the value of <title> upon page navigation
+  if (!pageContext.isHydration) {
+    document.title = getTitle(pageContext)
+  }
+  // ...
+}
+```
+
+
+```js
+// /pages/utils.js
+// Environment: server & client
+
+export { getTitle, getDescription }
+
+function getTitle(pageContext) {
+  // The value exported by /pages/**/+title.js is available at pageContext.config.title
+  const val = pageContext.config.title
+  if (!val) return 'Some default title'
+  if (typeof val === 'string') return val
+  if (typeof val === 'function') return val(pageContext)
+}
+function getDescription(pageContext) {
+  // Same as getTitle()
+  // ...
+}
+```
+
+```js
+// /pages/+onRenderHtml.js
+// Environment: server
+
+export { onRenderHtml }
+
+import { getTitle, getDescription } from './utils'
+import { escapeInject, dangerouslySkipEscape } from 'vike/server'
+import { renderToHtml } from 'some-ui-framework'
+
+async function onRenderHtml(pageContext) {
+  const title = getTitle(pageContext)
+  const description = getDescription(pageContext)
+  return escapeInject`<!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title}</title>
+        <meta name="description" content="${description}" />
+      </head>
+      <body>
+        <div id="root">${dataEndpointUrl(renderToHtml(<Page {...pageContext.data} />))}</div>
+      </body>
+    </html>`
+}
+```
+
+> This implementation can be improved: the file `/pages/utils.js` is loaded on both the server- and client-side but `getDescription()` is only used by the server-side. This means `getDescription()` unnecessarily bloats the size of your client-side bundles. It would be cleaner to split `/pages/utils.js` in two seperate files: one for the client-side and another one for the server-side. In general, be extra careful in which environment each file is loaded; consider using <Link href="/file-env">`.server.js` and `.client.js`</Link> to ensure the environment of files.
+
+
+## Example: `Layout`
+
+> If you use a <UiFrameworkVikeExtension/>, then you don't need to create the `Layout` setting as it's already created by <UiFrameworkVikeExtensionNames />.
+
+Another common use case is to create a component `<Layout>` that defines the layout of a page.
+
+```js
+// /pages/product/+Layout.js
+// Environment: browser and server
+
+export { Layout } from '../layouts/Responsive'
+```
+
+```js
+// /pages/admin/+Layout.js
+// Environment: browser and server
+
+export { Layout } from '../layouts/Dashboard'
+```
+
+```js
+// /pages/+Layout.js
+// Environment: browser and server
+
+// The default layout in case the page doesn't set one
+export { Layout } from '../layouts/LayoutDefault'
+```
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  meta: {
+    Layout: {
+      // Load the value of /pages/**/+Layout.js on both the server and client
+      env: { server: true, client: true }
+    }
+  }
+}
+```
+
+```js
+// /pages/+onRenderHtml.js
+// Environment: server
+
+export { onRenderHtml }
+
+import { renderToHtml } from 'some-ui-framework'
+import { escapeInject, dangerouslySkipEscape } from 'vike/server'
+
+async function onRenderHtml(pageContext) {
+  const { Page, Layout } = pageContext.config
+  const pageHtml = renderToHtml(<Layout><Page/></Layout>)
+  return escapeInject`<!DOCTYPE html>
+    <html>
+      <body>
+        <div id="root">${dangerouslySkipEscape(pageHtml)}</div>
+      </body>
+    </html>`
+}
+```
+
+> Note how we use `pageContext.config.Page` instead of `pageContext.Page`: that's because `pageContext.Page` is just an alias for `pageContext.config.Page`.
+
+```js
+// /pages/+onRenderClient.jsx
+// Environment: browser
+
+export { onRenderClient }
+
+import { renderDom } from 'some-ui-framework'
+
+async function onRenderClient(pageContext) {
+  const { Page, Layout } = pageContext.config
+  renderDom(
+    <Layout><Page/></Layout>,
+    document.getElementById("root")
+  )
+}
+```
+
+Examples:
+ - <RepoLink path="/examples/layouts-react/" />
+ - <RepoLink path="/examples/layouts-vue/" />
+
+
+## Example: modify `data()` env
+
+You can use `meta` to change the environment in which built-in hooks are loaded. For example you can change the environment of `data()` from `{ server: true, client: false }` to `{ server: true, client: true }`.
+
+```ts
+// /pages/some-page/+config.ts
+
+import type { Config } from 'vike/types'
+
+export default {
+  meta: {
+    data: {
+      // By default, the data() hook is loaded and executed only on the
+      // server-side. By using meta we can make it isomorphic instead:
+      // data() is loaded and executed as well on the client-side.
+      env: { server: true, client: true }
+    }
+  }
+} satisfies Config
+```
+
+> Making `data()` isomorphic allows you to fetch data directly between the user's browser and the data source (without involving your server), see <Link href="/data#client-side" />.
+
+For more convenience, you can create a `dataIsomorph` toggle:
+
+```ts
+// /pages/+config.ts
+
+import type { Config, Effect } from 'vike/types'
+
+const effect: Effect = ({ configDefinedAt, configValue }) => {
+  if (typeof configValue !== 'boolean') {
+    throw new Error(`${configDefinedAt} should be a boolean`)
+  }
+  if (configValue === true) {
+    return {
+      meta: {
+        data: {
+          env: { server: true, client: true }
+        }
+      }
+    }
+  }
+}
+
+export default {
+  meta: {
+    dataIsomorph: {
+      env: { config: true },
+      effect
+    }
+  }
+} satisfies Config
+```
+
+Example:
+ - [/examples/react-full/](https://github.com/vikejs/vike/blob/43503a4829e4bb0171785bc8fa501c7ca096a150/examples/react-full/)
+   - Toggle definition: [/renderer/+config.ts > `meta.dataIsomorph`](https://github.com/vikejs/vike/blob/43503a4829e4bb0171785bc8fa501c7ca096a150/examples/react-full/renderer/%2Bconfig.ts#L15-L33)
+   - Toggle usage: [/pages/star-wars/@id/+dataIsomorph.ts](https://github.com/vikejs/vike/blob/43503a4829e4bb0171785bc8fa501c7ca096a150/examples/react-full/pages/star-wars/@id/+dataIsomorph.ts)
+   - Hook: [/pages/star-wars/@id/+data.tsx](https://github.com/vikejs/vike/blob/43503a4829e4bb0171785bc8fa501c7ca096a150/examples/react-full/pages/star-wars/@id/+data.tsx)
+
+
+## API
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  meta: {
+    someSettingOrHook: {
+      // Required. Defines the environment in which the config value is loaded.
+      env: {
+        //  Load the config value on the server.
+        server: true,
+        //  Load the config value on the client.
+        client: true,
+        // Load the config value at config time. Required for `effect`. Optional.
+        config: false // default value
+      },
+
+      // Optional. Whether config values should be merged instead of overwritten.
+      cumulative: false, // default value
+
+      // Optional. Function called when the config value is defined.
+      // Requires `env.config` to be `true`.
+      effect({ configDefinedAt, configValue }) {
+        if (someCondition) {
+          // This config object is merged with the current one.
+          return {
+            meta: {
+              // This can be the same or another hook/setting.
+              someOtherSettingOrHook: {
+                env: { server: true, client: false }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+## TypeScript
+
+Similar to <Link href="/pageContext#typescript">`Vike.PageContext`</Link>, you can extend (or refine) Vike's `Config` type by using the global interface `Vike.Config`.
+
+```ts
+// /pages/+config.ts
+// Environment: config
+
+export default {
+  meta: {
+    sqlQuery: {
+      env: { server: true }
+    }
+  }
+}
+
+declare global {
+  namespace Vike {
+    interface Config {
+      /** The SQL query that retrieves the page's data */
+      sqlQuery?: (id: number) => string
+    }
+  }
+}
+
+// The following isn't needed in this example, but if you define Vike.Config
+// in a .d.ts file then make sure there is at least one export/import statment.
+// Tell TypeScript this file isn't an ambient module:
+export {}
+```
+
+```ts
+// /pages/product/@id/+config.ts
+
+import { Config } from 'vike/types'
+
+export default {
+  // ✅ Typed
+  sqlQuery: (id) => `SELECT { name, price } FROM products WHERE id = "${id}";`
+} satisfies Config
+```
+
+> `sqlQuery` is a custom setting, see <Link href="#example-sql" doNotInferSectionTitle />.
+
+## See also
+
+- <Link href="/migration/v1-design" />

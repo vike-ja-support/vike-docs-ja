@@ -1,0 +1,78 @@
+import { Link } from '@brillout/docpress'
+
+The error page, which is defined by `/pages/_error/+Page.js`, is rendered when an error occurs. It's also rendered when
+you call <Link href="/render" text={<code>throw render(abortStatusCode)</code>}></Link>.
+
+```ts
+// /pages/_error/+Page.ts
+
+export { Page }
+
+import { usePageContext } from 'vike-react/usePageContext'
+/* Or:
+import { usePageContext } from 'vike-vue/usePageContext'
+import { usePageContext } from 'vike-solid/usePageContext'
+*/
+
+function Page() {
+  const pageContext = usePageContext()
+
+  let msg: string // Message shown to the user
+  const { abortReason, abortStatusCode } = pageContext
+  if (abortReason?.notAdmin) {
+    // Handle `throw render(403, { notAdmin: true })`
+    msg = "You cannot access this page because you aren't an administrator."
+  } else if (typeof abortReason === 'string') {
+    // Handle `throw render(abortStatusCode, `You cannot access ${someCustomMessage}`)`
+    msg = abortReason
+  } else if (abortStatusCode === 403) {
+    // Handle `throw render(403)`
+    msg = "You cannot access this page because you don't have enough privileges."
+  } else if (abortStatusCode === 401) {
+    // Handle `throw render(401)`
+    msg = "You cannot access this page because you aren't logged in. Please log in."
+  } else {
+    // Fallback error message
+    msg = pageContext.is404 ?
+      "This page doesn't exist." :
+      "Something went wrong. Sincere apologies. Try again (later)."
+  }
+
+  return <p>{msg}</p>
+}
+
+// When using TypeScript you can define the type of `abortReason`
+declare global {
+  namespace Vike {
+    interface PageContext {
+      abortReason?:
+        | string
+        | { notAdmin: true }
+    }
+  }
+}
+```
+
+> The <Link href="/usePageContext" /> UI component hook allows you to access <Link href="/pageContext" noBreadcrumb /> from any UI component.
+
+> The global interface `Vike.PageContext` allows you to define `pageContext` types in a global fashion, see <Link href="/pageContext#typescript" />.
+
+The `pageContext.abortReason` and `pageContext.abortStatusCode` values are set by <Link href="/render" text={<code>throw render(abortStatusCode, abortReason)</code>} />, and `pageContext.is404` is set by Vike.
+
+The error page is rendered when:
+ 1. The URL didn't match the route of any of your pages (`404 Page Not Found`).
+ 2. Your code has a bug (`500 Internal Error`), technically speaking: one of your hooks threw an error.
+ 3. One of your hooks used <Link href="/render" text={<code>throw render(abortStatusCode)</code>} />, for examle: `throw render(401, "You don't have the permission to access this page.")`.
+
+
+## Pre-rendering
+
+If you use <Link text="pre-rendering" href="/pre-rendering" />, then Vike uses the error page to generate
+`/dist/client/404.html`.
+
+> Most Static Hosts follow the convention of using the file `404.html` as 404 page.
+
+## See also
+
+ - <Link href="/errors" />
+ - <Link href="/pageContext#typescript" />

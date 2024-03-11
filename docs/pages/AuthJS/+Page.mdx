@@ -1,0 +1,58 @@
+import { UseBatiHint_insteadOfManuelIntegration } from '../../components'
+import { Link, Warning } from '@brillout/docpress'
+
+[Auth.js](https://authjs.dev/) (previously known as NextAuth.js) can be used with Vike.
+
+<UseBatiHint_insteadOfManuelIntegration toolName="Auth.js" />
+
+## Examples
+
+ - [github.com/iMrDJAi/vps-nextauth-example](https://github.com/iMrDJAi/vps-nextauth-example)
+ - [github.com/s-kris/vite-ssr-next-auth](https://github.com/s-kris/vite-ssr-next-auth)
+
+> vite-plugin-ssr was the [previous name of Vike](https://vite-plugin-ssr.com/vike).
+
+## `process.env.NEXTAUTH_URL`
+
+To access environment variables on the client-side, such as `process.env.NEXTAUTH_URL`, we can use
+[`vite.config.js#define`](https://vitejs.dev/config/#define)
+or
+[`vite.config.js#envPrefix`](https://vitejs.dev/config/#envprefix).
+
+<Warning>Don't add `NEXTAUTH_` to `envPrefix` as it would leak `NEXTAUTH_SECRET`.</Warning>
+
+See also:
+- [Vite > Config > Environment Variables](https://vitejs.dev/config/#environment-variables)
+
+> We can use `process.env` as usual for server (e.g. Express.js) code. (Since [server code isn't processed by Vite](https://github.com/vikejs/vike/issues/562).)
+
+
+## Fetch polyfill for `getSession()`
+
+In order to use Auth.js's [`getSession()`](https://authjs.dev/reference/utilities/#getsession) on the server-side, we need to globally install a fetch polyfill.
+
+> A polyfill isn't needed if we use `getSession()` only on the client-side, or if we use Node.js 18 which [natively supports `fetch()`](https://nodejs.org/en/blog/announcements/v18-release-announce/#fetch-experimental).
+
+We can use [`node-fetch` to patch the global object](https://github.com/node-fetch/node-fetch#providing-global-access):
+
+```js
+// server.js
+
+// Only install the polyfill on the server (e.g. Express.js). Browsers already implement
+// `fetch()` natively and it would be wasteful to load the polyfill on the browser-side.
+
+// Use node-fetch@2 instead of node-fetch@3 if your `package.json#type` isn't `"module"`.
+// Or some other `fetch()` polyfill, e.g. `cross-fetch`.
+import fetch, { Headers, Request, Response } from 'node-fetch'
+
+if (!globalThis.fetch) {
+  globalThis.fetch = fetch
+  globalThis.Headers = Headers
+  globalThis.Request = Request
+  globalThis.Response = Response
+}
+```
+
+## See also
+
+- <Link href="/auth" />

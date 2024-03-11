@@ -1,0 +1,18 @@
+import { Link } from '@brillout/docpress'
+
+```js
+// +config.js
+
+export default {
+  // Default value: false
+  hydrationCanBeAborted: true
+}
+```
+
+> The `hydrationCanBeAborted` setting only applies to <Link href="/client-routing">Client Routing</Link>.
+
+Whether your <Link href="/ui-framework">UI framework</Link> allows the <Link href="/hydration">hydration</Link> to be aborted.
+
+Setting `hydrationCanBeAborted` to `true` tells Vike that the hydration can be aborted when the user clicks on a link before the hydration has finished.
+
+React users should set `hydrationCanBeAborted` to `true`. Other frameworks, such as Vue, crash if the hydration is aborted; `hydrationCanBeAborted` should be set to `false`.

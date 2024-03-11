@@ -1,0 +1,40 @@
+import { Link } from '@brillout/docpress'
+
+```ts
+// Redirect the user to another URL
+redirect(url: `/${string}` | `https://${string}` | `http://${string}`)
+```
+
+```js
+import { redirect } from 'vike/abort'
+
+function onSomeHook() {
+  if (someCondition) {
+    throw redirect('/some-url')
+  }
+}
+```
+
+> `throw redirect()` is about *aborting* a page from being rendered and redirecting to the user to another page instead. Use <Link href="/navigate">`navigate()`</Link> if you want to redirect *after* the page is already rendered. See <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" doNotInferSectionTitle={true} />.
+
+> `throw redirect()` makes temporary redirections (HTTP status code `302`). For permanent redirections (HTTP status code `301`), use the <Link href="/redirects">`redirects` setting</Link> or pass a second argument `throw redirect('/some-url', 301)`.
+
+Common use cases:
+
+- Authentication and authorization, see <Link href="/auth#login-flow" />.
+- Data fetching error handling, see <Link href="/data#error-handling" />.
+
+While it's most commonly used with [`guard()`](/guard) or [`data()`](/data) you can use it with any hook.
+
+> For improved DX, consider using <Link href="/render">`throw render()`</Link> instead of `throw redirect()`. See <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" doNotInferSectionTitle={true} />.
+
+If `throw redirect()` doesn't work, see <Link href="/abort#debug" /> and <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" />.
+
+
+## See also
+
+- <Link href="/redirects" />
+- <Link href="/navigate" />
+- <Link href="/render"  />
+- <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" doNotInferSectionTitle={true} />
+- <Link href="/abort#debug" />

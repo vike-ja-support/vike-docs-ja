@@ -1,7 +1,7 @@
-// Alternative: use `ssrEmitAssets: true`
-//  - See https://github.com/vitejs/vite/pull/11430
+// Remove this workaround if the other workaround config.build.ssrEmitAssets turns out to be reliable.
+//  - Remove this file then revert this commit: https://github.com/vikejs/vike/commit/805a18974f13420a78fcc30fdd676696e405c3ca
 
-// This plugin makes client-side bundles include the CSS imports living in server-side-only code.
+// Workaround to make client-side bundles include the CSS imports living in server-side-only code.
 //  - This is needed for HTML-only pages, and React Server Components.
 //  - We recommend using the debug flag to get an idea of how this plugin works: `$ DEBUG=vike:extractAssets pnpm exec vite build`. Then have a look at `dist/client/manifest.json` and see how `.page.server.js` entries have zero JavaScript but only CSS.
 //  - This appraoch supports import path aliases `vite.config.js#resolve.alias` https://vitejs.dev/config/#resolve-alias
@@ -28,9 +28,12 @@ import { getConfigVike } from '../../shared/getConfigVike.js'
 import type { ConfigVikeResolved } from '../../../shared/ConfigVike.js'
 import { isAsset } from '../shared/isAsset.js'
 import { getImportStatements, type ImportStatement } from '../shared/parseEsModule.js'
-import { removeSourceMap } from '../shared/removeSourceMap.js'
+import { sourceMapRemove } from '../shared/rollupSourceMap.js'
 import type { Rollup } from 'vite'
 import pc from '@brillout/picocolors'
+import { fixServerAssets_isEnabled } from './buildConfig/fixServerAssets.js'
+import { getVikeConfig, isV1Design, type VikeConfigObject } from './importUserCode/v1-design/getVikeConfig.js'
+import { assertV1Design } from '../../shared/assertV1Design.js'
 type ResolvedId = Rollup.ResolvedId
 
 const extractAssetsRE = /(\?|&)extractAssets(?:&|$)/
@@ -45,6 +48,8 @@ const debugEnabled = isDebugEnabled(debugNamespace)
 function extractAssetsPlugin(): Plugin[] {
   let config: ResolvedConfig
   let configVike: ConfigVikeResolved
+  let vikeConfig: VikeConfigObject
+  let isServerAssetsFixEnabled: boolean
   return [
     // This plugin removes all JavaScript from server-side only code, so that only CSS imports remains. (And also satic files imports e.g. `import logoURL from './logo.svg.js'`).
     {
@@ -56,13 +61,18 @@ function extractAssetsPlugin(): Plugin[] {
         if (!extractAssetsRE.test(id)) {
           return
         }
+        if (isServerAssetsFixEnabled) {
+          // I'm guessing isServerAssetsFixEnabled can only be true when mixing both designs: https://github.com/vikejs/vike/issues/1480
+          assertV1Design(true, vikeConfig.pageConfigs)
+          assert(false)
+        }
         assert(configVike.includeAssetsImportedByServer)
         assert(!viteIsSSR_options(options))
         const importStatements = await getImportStatements(src)
         const moduleNames = getImportedModules(importStatements)
         const code = moduleNames.map((moduleName) => `import '${moduleName}';`).join('\n')
         debugTransformResult(id, code, importStatements)
-        return removeSourceMap(code)
+        return sourceMapRemove(code)
       }
     },
     // This plugin appends `?extractAssets` to module IDs
@@ -120,30 +130,6 @@ function extractAssetsPlugin(): Plugin[] {
           return emptyModule(file, importer)
         }
 
-        // If the dependency is a Vike extension and has `configVike.extension[number].pageConfigsSrcDir`, then include its CSS
-        if (
-          configVike.extensions
-            .filter(({ pageConfigsSrcDir }) => pageConfigsSrcDir !== null)
-            .some(({ npmPackageName }) => {
-              const check1 =
-                source === npmPackageName ||
-                source.startsWith(npmPackageName + '/') ||
-                // Include relative imports within modules of `npmPackageName`. (This only works for dependencies: user may use import path aliases.)
-                source.startsWith('.')
-              // This doesn't work for linked dependencies
-              const check2 =
-                file.includes('node_modules/' + npmPackageName + '/') ||
-                file.includes('node_modules\\' + npmPackageName + '\\')
-              if (check1) {
-                return true
-              }
-              assert(!check2)
-              return false
-            })
-        ) {
-          return appendExtractAssetsQuery(file, importer)
-        }
-
         // If the import path resolves to a file in `node_modules/`, we ignore that file:
         //  - Direct CSS dependencies are included though, such as `import 'bootstrap/theme/dark.css'`. (Because the above if-branch for CSS files will add the file.)
         //  - Loading CSS from a library (living in `node_modules/`) in a non-direct way is non-standard; we can safely not support this case. (I'm not aware of any library that does this.)
@@ -166,6 +152,8 @@ function extractAssetsPlugin(): Plugin[] {
       async configResolved(config_) {
         configVike = await getConfigVike(config_)
         config = config_
+        vikeConfig = await getVikeConfig(config, false)
+        isServerAssetsFixEnabled = fixServerAssets_isEnabled() && (await isV1Design(config, false))
       },
       load(id) {
         if (!isVirtualFileId(id)) return undefined

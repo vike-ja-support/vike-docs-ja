@@ -14,12 +14,13 @@ import {
   getFilePathRelativeToUserRootDir,
   lowerFirst
 } from '../utils.js'
+import { sourceMapPassthrough } from '../shared/rollupSourceMap.js'
 
 function envVarsPlugin(): Plugin {
   let envsAll: Record<string, string>
   let config: ResolvedConfig
   return {
-    name: 'vike:env',
+    name: 'vike:envVars',
     enforce: 'post',
     configResolved(config_) {
       config = config_
@@ -44,8 +45,8 @@ function envVarsPlugin(): Plugin {
           const envPrefix = !config.envPrefix
             ? []
             : Array.isArray(config.envPrefix)
-            ? config.envPrefix
-            : [config.envPrefix]
+              ? config.envPrefix
+              : [config.envPrefix]
           return !envPrefix.some((prefix) => key.startsWith(prefix))
         })
         .forEach(([envName, envVal]) => {
@@ -76,8 +77,11 @@ function envVarsPlugin(): Plugin {
           code = applyEnvVar(envName, envVal, code)
         })
 
-      // No need for low-resolution source map since line numbers didn't change. (Does Vite do high-resolution column numbers source mapping?)
-      return code
+      // Line numbers didn't change.
+      //  - We only break the column number of a couple of lines, wich is acceptable.
+      //  - Anyways, I'm not even sure Vite supports high-resolution column number source mapping.
+      const ret = sourceMapPassthrough(code)
+      return ret
     }
   }
 }

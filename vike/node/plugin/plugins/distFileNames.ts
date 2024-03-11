@@ -7,6 +7,7 @@ export { distFileNames }
 import { assertPosixPath, assert, assertUsage } from '../utils.js'
 import path from 'path'
 import type { Plugin, ResolvedConfig, Rollup } from 'vite'
+import { getAssetsDir } from '../shared/getAssetsDir.js'
 type PreRenderedChunk = Rollup.PreRenderedChunk
 type PreRenderedAsset = Rollup.PreRenderedAsset
 
@@ -19,14 +20,24 @@ function distFileNames(): Plugin {
       const rollupOutputs = getRollupOutputs(config)
       // We need to support multiple outputs: @vite/plugin-legacy adds an ouput, see https://github.com/vikejs/vike/issues/477#issuecomment-1406434802
       rollupOutputs.forEach((rollupOutput) => {
-        if (!rollupOutput.entryFileNames) {
+        if (!('entryFileNames' in rollupOutput)) {
           rollupOutput.entryFileNames = (chunkInfo) => getEntryFileName(chunkInfo, config, true)
         }
-        if (!rollupOutput.chunkFileNames) {
+        if (!('chunkFileNames' in rollupOutput)) {
           rollupOutput.chunkFileNames = (chunkInfo) => getChunkFileName(chunkInfo, config)
         }
-        if (!rollupOutput.assetFileNames) {
+        if (!('assetFileNames' in rollupOutput)) {
           rollupOutput.assetFileNames = (chunkInfo) => getAssetFileName(chunkInfo, config)
+        } else {
+          // If a user needs this:
+          //  - assertUsage() that the naming provided by the user ends with `.[hash][extname]`
+          //    - It's needed for getHash() of fixServerAssets()
+          //    - Asset URLs should always contain a hash: it's paramount for caching assets.
+          //    - If rollupOutput.assetFileNames is a function then use a wrapper function to apply the assertUsage()
+          assertUsage(
+            false,
+            "Setting config.build.rollupOptions.output.assetFileNames is currently forbidden. (It's possible to support, thus contact a maintainer if you need this.)"
+          )
         }
       })
     }
@@ -178,11 +189,4 @@ function getRollupOutputs(config: ResolvedConfig) {
     return [output]
   }
   return output
-}
-
-function getAssetsDir(config: ResolvedConfig) {
-  let { assetsDir } = config.build
-  assertUsage(assetsDir, `${assetsDir} cannot be an empty string`)
-  assetsDir = assetsDir.split(/\/|\\/).filter(Boolean).join('/')
-  return assetsDir
 }

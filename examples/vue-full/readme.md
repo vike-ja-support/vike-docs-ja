@@ -1,6 +1,3 @@
-> [!NOTE]
-> This example is deprecated. See [`vue-full-v1`](../vue-full-v1/) instead.
-
 Example of using Vike with Vue that showcases many features.
 
 For a simpler example, check out [/examples/vue/](/examples/vue/).
@@ -8,7 +5,7 @@ For a simpler example, check out [/examples/vue/](/examples/vue/).
 Features:
  - Client Routing (+ usage of `navigate()`)
  - Data Fetching (server-side fetching + isomorphic fetching)
- - Pre-rendering (+ usage of the `prerender()` hook)
+ - Pre-rendering (+ usage of the `onBeforePrerenderStart()` hook)
  - Route Function
  - TypeScript
  - Markdown
