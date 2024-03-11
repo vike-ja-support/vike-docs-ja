@@ -1,0 +1,50 @@
+import { Link } from '@brillout/docpress'
+
+`throw render()` is like <Link href="/redirect">`throw redirect()`</Link> but preserves the URL, see <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" doNotInferSectionTitle={true} />.
+
+```ts
+// Render the error page
+render(abortStatusCode: 401 | 403 | 404 | 429 | 500 | 503, abortReason?: unknown)
+// Render another page (aka URL rewrite)
+render(url: `/${string}`, abortReason?: unknown)
+```
+
+```js
+import { render } from 'vike/abort'
+
+function onSomeHook() {
+  if (someCondition) {
+    throw render('/login')
+  }
+  if (someOtherCondition) {
+    throw render(401, "You don't have the permission to access this page.")
+  }
+}
+```
+
+- If the first argument is a URL, then that URL is rendered.
+- If the first argument is a status code, then the <Link text="error page" href="/error-page" /> is rendered.
+  - [`401` Unauthorized](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401) - Access denied, the user isn't logged in.
+  - [`403` Forbidden](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403) - Access denied, the user is logged in but isn't allowed.
+  - [`404` Not Found](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404) - Page doesn't exist.
+  - [`429` Too Many Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429) - Purposefully not serving the request, because of rate limiting or to protect from [DDoS attacks](https://en.wikipedia.org/wiki/Denial-of-service_attack).
+  - [`500` Internal Server Error](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500) - App has a bug.
+  - [`503` Service Unavailable](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503) - Server is overloaded and/or a third-party API isn't responding.
+- The `abortReason` and `abortStatusCode` arguments are made available at `pageContext.abortReason` and `pageContext.abortStatusCode` which is useful for enabling the error page to show a useful error message to the user, see <Link href="/error-page" />.
+  > If you use TypeScript, you can define the `abortReason` type by using the global interface `Vike.PageContext`, see <Link href="/error-page" />.
+
+While it's most commonly used with [`guard()`](/guard) or [`data()`](/data) you can use it with any hook.
+
+Common use cases:
+
+- Authentication and authorization, see <Link href="/auth#login-flow" />.
+- Data fetching error handling, see <Link href="/data#error-handling" />.
+
+If `throw render()` doesn't work, see <Link href="/abort#debug" />.
+
+
+## See also
+
+- <Link href="/redirect"  />
+- <Link href="/abort#throw-redirect-vs-throw-render-vs-navigate" doNotInferSectionTitle={true} />
+- <Link href="/abort#debug" />

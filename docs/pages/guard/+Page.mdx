@@ -1,0 +1,35 @@
+import { Link } from '@brillout/docpress'
+
+The `guard()` hook enables you to protect pages from unauthorized access, see <Link href="/auth#login-flow" />.
+
+Note that:
+
+- It's always used together with <Link href="/render" text={<code>throw render()</code>} /> or <Link href="/redirect" text={<code>throw redirect()</code>} />. (The `guard()` hook doesn't accept any return value.)
+- It can be asynchronous. (Unlike Route Functions which are synchronous.)
+- A single `guard()` hook can <Link href="/config#inheritance">apply to multiple pages</Link>.
+
+```js
+export { guard }
+
+import { render } from 'vike/abort'
+
+async function guard(pageContext) {
+  if (pageContext.urlPathname === '/hello/forbidden') {
+    throw render(401, 'This page is forbidden.')
+  }
+}
+```
+
+
+## TypeScript
+
+```ts
+export { guard }
+
+import type { GuardAsync } from 'vike/types'
+import { render } from 'vike/abort'
+
+const guard: GuardAsync = async (pageContext): ReturnType<GuardAsync> => {
+  // ...
+}
+```

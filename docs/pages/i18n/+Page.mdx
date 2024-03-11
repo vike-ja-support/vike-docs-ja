@@ -1,0 +1,209 @@
+import { RepoLink, Link } from '@brillout/docpress'
+
+You can internationalize (i18n) your app by using the <Link text={<><code>onBeforeRoute()</code> hook</>} href="/onBeforeRoute" />.
+
+```js
+// /renderer/+onBeforeRoute.js
+
+export { onBeforeRoute }
+
+function onBeforeRoute(pageContext) {
+  const { urlWithoutLocale, locale } = extractLocale(pageContext.urlPathname)
+  return {
+    pageContext: {
+      // Make `locale` available as `pageContext.locale`
+      locale,
+      // Vike's router will use pageContext.urlLogical instead of pageContext.urlOriginal
+      urlLogical: urlWithoutLocale
+    }
+  }
+}
+
+// You can also use a library instead of implementing your own locale retrieval mechanism
+function extractLocale(url) {
+  // Determine the locale, for example:
+  //  extractLocale('/en-US/film/42').locale === 'en-US'
+  //  extractLocale('/de-DE/film/42').locale === 'de-DE'
+  const locale = /* ... */
+
+  // Remove the locale, for example:
+  //  extractLocale('/en-US/film/42').urlWithoutLocale === '/film/42'
+  //  extractLocale('/de-DE/film/42').urlWithoutLocale === '/film/42'
+  //  ...
+  urlWithoutLocale = /* ... */
+
+  return { locale, urlWithoutLocale }
+}
+```
+
+Upon rendering a page, `onBeforeRoute()` is the first hook that Vike calls, which means that the rest of your app doesn't have to deal with localized URLs anymore and you can simply use `pageContext.locale` instead.
+
+> See <Link href="/usePageContext" /> for being able to access `pageContext.locale` in any React/Vue component.
+
+This technique also works with:
+
+- `?lang=fr` query parameters
+- `domain.fr` domain TLDs
+- `Accept-Language: fr-FR` headers
+   > The `Accept-Language` header can be used for redirecting the user to the right localized URL (e.g. URL `/about` + Header `Accept-Language: de-DE` => redirect to `/de-DE/about`). Once the user is redirected to a localized URL, you can use the technique described above. You can perform the redirection by using your server (e.g. Express.js) independently of Vike.
+
+   > Using the `Accept-Language` header to show different languages for the same URL is considered bad practice for both SEO and UX reasons. It's recommended to use `Accept-Language` only to redirect the user.
+
+
+## Examples
+
+ - <RepoLink path='/examples/i18n/' />
+ - [github.com/crummy/vite-ssr-i18n](https://github.com/crummy/vite-ssr-i18n)
+   > vite-plugin-ssr was the [previous name of Vike](https://vite-plugin-ssr.com/vike).
+
+
+## Pre-rendering
+
+If you use <Link text="pre-rendering" href="/pre-rendering" /> then, in addition to defining `onBeforeRoute()`, you also need to
+define the `onPrerenderStart()` hook:
+
+```js
+// /renderer/+onPrerenderStart.js
+
+export { onPrerenderStart }
+
+const locales = ['en-US', 'de-DE', 'fr-FR']
+const localeDefault = 'en-US'
+
+function onPrerenderStart(prerenderContext) {
+  const pageContexts = []
+  prerenderContext.pageContexts.forEach((pageContext) => {
+    // Duplicate pageContext for each locale
+    locales.forEach((locale) => {
+      // Localize URL
+      let { urlOriginal } = pageContext
+      if (locale !== localeDefault) {
+        urlOriginal = `/${locale}${pageContext.urlOriginal}`
+      }
+      pageContexts.push({
+        ...pageContext,
+        urlOriginal,
+        // Set pageContext.locale
+        locale
+      })
+    })
+  })
+  return {
+    prerenderContext: {
+      pageContexts
+    }
+  }
+}
+```
+
+See <RepoLink path='/examples/i18n/' /> for an example using `onPrerenderStart()`.
+
+Your <Link text={<><code>onBeforePrerenderStart()</code> hooks</>} href="/onBeforePrerenderStart" /> (if you use any) return URLs without any locale (e.g. `onBeforePrerenderStart()` returning `/product/42`). Instead, it's your `onPrerenderStart()` hook that duplicates and modifies URLs for each locale (e.g. duplicating `/product/42` into `/en-US/product/42`, `/de-DE/product/42`, `/fr-FR/product/42`).
+
+```js
+// /pages/product/+onBeforePrerenderStart.js
+
+export { onBeforePrerenderStart }
+
+async function onBeforePrerenderStart() {
+  const products = await Product.findAll()
+  const URLs = products.map(({ id }) => '/product/' + id)
+  // You don't add the locale here (it's your onPrerenderStart() hook that adds the locales)
+  return URLs
+}
+```
+
+Essentially, you use `onBeforePrerenderStart()` to determine URLs and/or load data, and use `onPrerenderStart()` to
+manipulate localized URLs and set `pageContext.locale`.
+
+> `onPrerenderStart()` is a global hook you can define only once, while `onBeforePrerenderStart()` is a per-page hook you can define multiple times.
+
+Alternatively, if you need to load data that depends on localization, instead of `onPrerenderStart()` you can use
+`onBeforePrerenderStart()` to localize <Link href="/data#pagecontext-data" doNotInferSectionTitle>`pageContext.data`</Link>:
+
+```js
+// /pages/product/+onBeforePrerenderStart.js
+
+// This example doesn't use onPrerenderStart() but, instead,
+// uses onBeforePrerenderStart() to duplicate and localize URLs and their pageContext
+export { onBeforePrerenderStart }
+
+async function onBeforePrerenderStart() {
+  // Load data
+  const products = await Product.findAll()
+
+  // Set pageContext + localize
+  const urlsWithPageContext = []
+  products.forEach(product => {
+    ['en-US', 'de-DE', 'fr-FR'].forEach(locale => {
+      urlsWithPageContext.push({
+        url: `/${locale}/product/${product.id}`,
+        pageContext: {
+          locale,
+          product,
+          data: {
+            product: {
+              name: product.name,
+              description: product.description,
+              price: product.price,
+              // ...
+            }
+          }
+        }
+      })
+    })
+  })
+
+  return urlsWithPageContext
+}
+```
+
+You may still need to use `onPrerenderStart()` for localizing static pages that don't load data:
+
+```js
+// /renderer/+onPrerenderStart.js
+
+export { onPrerenderStart }
+
+import assert from 'assert'
+
+const locales = ['en-US', 'de-DE', 'fr-FR']
+
+function onPrerenderStart(prerenderContext) {
+  const pageContexts = []
+  prerenderContext.pageContexts.forEach((pageContext) => {
+    if(pageContext.locale) {
+      // Already localized by one of your onBeforePrerenderStart() hooks
+      assert(pageContext.urlOriginal.startsWith(`/${pagecontext.locale}/`))
+      pageContexts.push(pageContext)
+    } else {
+      // Duplicate pageContext for each locale
+      locales.forEach((locale) => {
+        // Localize URL and pageContext
+        pageContexts.push({
+          ...pageContext,
+          urlOriginal: `/${locale}${pageContext.urlOriginal}`,
+          locale
+        })
+      })
+    }
+  })
+  return {
+    prerenderContext: {
+      pageContexts
+    }
+  }
+}
+```
+
+
+## `lang`
+
+You can use the `lang` setting to define the value of the `<html lang>` attribute, see <Link href="/lang" />.
+
+
+## See also
+
+- <Link href="/head#internationalization" />
+- <Link href="/lang" />
+- <Link href="/onBeforeRoute" />

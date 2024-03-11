@@ -1,0 +1,60 @@
+import { Link } from '@brillout/docpress'
+import { DefaultRouting, UiFrameworkVikeExtension } from '../../components'
+
+Vike has first-class support for both:
+ - <Link href="/server-routing">Server(-side) Routing</Link>, and
+ - <Link href="/client-routing">Client(-side) Routing</Link>.
+
+<DefaultRouting />
+
+## Which one to choose?
+
+If you don't use a <UiFrameworkVikeExtension />, then we recommend to use Server Routing by default as it leads to a simpler architecture.
+
+In general, there are two things to consider:
+ - There is a trade-off between simplicity (Server Routing) and performance (Client Routing).
+ - If client-side state needs to be preserved across navigation (e.g. the state of a music player component), then Client-side Routing is required.
+
+Ultimately, which one to use depends on your use case.
+
+### Simple Websites
+
+Apps with a simple architecture, such as portfolio or marketing websites, can afford the added complexity of Client Routing.
+Client-side Routing can be worth it for having smooth page navigations giving such website a polished touch.
+
+*Recommendation: Client-side Routing.*
+
+### MVPs
+
+As a startup that wants to deliver an MVP as quickly as possible, Server Routing is a sensible default choice. A simple architecture leads to higher development speed which means more features for your users.
+
+*Recommendation: Server-side Routing.*
+
+### Highly polished apps
+
+For example Netflix's web app: Netflix pushes for delightful user experiences, and has the budget and man-power to do it. For entertainment apps, the highly polished user experience can be worth the added complexity.
+
+*Recommendation: Client-side Routing.*
+
+### Client-side state preserved across navigation
+
+For example, on music players such as Spotify, the currently listened song should not be interrupted when the user navigates to a new page. Server Routing cannot preserve client-side state and, therefore, Client Routing is needed.
+
+*Requirement: Client-side Routing.*
+
+### Nested Layouts
+
+Similarly to the previous section, when using <Link text="Nested Layouts" href="/Layout#nested-layouts" />, the state of the outer page is preserved, which means Nested Layouts cannot be implemented using Server Routing.
+
+*Requirement: Client-side Routing.*
+
+### Third-party API
+
+For example, if you use Shopify's or Facebook's GraphQL API,
+then Client Routing enables page navigation without doing any request to your Node.js server:
+when the user navigates to a new page,
+the user's browser directly communicates with the Shopify/Facebook GraphQL API and your Node.js server isn't involved at all.
+
+The Shopify/Facebook GraphQL API may geographically live significantly closer to your user than your Node.js server; you may want to involve your Node.js server has less as possible.
+
+*Recommendation: Client-side Routing.*

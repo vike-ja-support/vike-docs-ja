@@ -1,0 +1,106 @@
+import { RepoLink, Link } from '@brillout/docpress'
+import { UiFrameworkVikeExtension, UiFrameworkVikeExtensionNames } from '../../components'
+
+
+## `data()`
+
+The usual way to fetch data is to use the <Link href="/data">`data()`</Link> Vike hook and the <Link href="/useData">`useData()`</Link> component hook.
+
+```js
+// /pages/movies/@id/+data.js
+// Environment: server
+
+export { data }
+
+import fetch from 'node-fetch'
+
+async function data(pageContext) {
+  const { id } = pageContext.routeParams
+  const response = await fetch(`https://star-wars.brillout.com/api/films/${id}.json`)
+
+  let movie = await response.json()
+  // `movie` is serialized and passed to the client. Therefore, we pick only the
+  // data the client needs in order to minimize what is sent over the network.
+  movie = { title: movie.title, release_date: movie.release_date }
+
+  // data() runs only on the server-side by default, we can therefore use ORM/SQL queries.
+  /* With an ORM:
+  const movies = await Movie.findAll({ select: ['title', 'release_date'] }) */
+  /* With SQL:
+  const movies = await sql.run('SELECT { title, release_date } FROM movies;') */
+
+  return {
+    movies
+  }
+}
+```
+
+> The `@id` in the path `/pages/movie/@id/+data.js` denotes a route parameter which value is available at `pageContext.routeParams.id`, see <Link href="/routing" />.
+
+> `pageContext` holds contextual information, see <Link href="/data#pagecontext" doNotInferSectionTitle/>.
+
+```js
+// SomeComponent.js
+// Environment: server, client
+
+import { useData } from 'vike-react/useData'
+/* Or:
+import { useData } from 'vike-vue/useData'
+import { useData } from 'vike-solid/useData'
+*/
+
+  // Inside a UI component
+  const data = useData()
+  const { name, price } = data
+```
+
+> `useData()` is provided by the <UiFrameworkVikeExtension />. If you don't use <UiFrameworkVikeExtensionNames /> then see <Link href="/useData#without-vike-extension" doNotInferSectionTitle />.
+
+The `data()` hook is only meant for fetching the initial data of a page (in technical words: the SSR data). For other use cases see the sections below <Link href="#api-routes">API routes</Link> and <Link href="#rpc">RPC</Link>.
+
+
+## API Routes
+
+To perform data mutations and subsequent data fetching (e.g. pagination data), a common technique is to use API routes. But we recommand RPC instead of API routes, see <Link href="/api-routes" />.
+
+
+## RPC
+
+RPC enables you to call backend functions remotely from your frontend in a seamless fashion, see <Link href="/RPC" />.
+
+We recommend [Telefunc](https://telefunc.com) wich is maintained by the Vike author.
+
+We recommend using Telefunc to perform data mutations and subsequent data fetching (e.g. pagination data) while using `data()` for fetching the initial data of a page (in technical words: the SSR data).
+
+> With React, you'll soon also be able to use Telefunc to fetch the initial SSR data instead of using the `data()` hook, see [Telefunc > #102](https://github.com/brillout/telefunc/issues/102).
+
+
+## GraphQL
+
+With Vike, you can manually integrate GraphQL tools yourself, giving you complete control over the integration. See:
+
+- <Link href="/apollo-graphql" />
+- <Link href="/relay" />
+- <Link href="/urql" />
+
+> In addtion to manual integration, you will soon also have the option to use Vike Extensions for automatic integration. See [#1373 - Vike Extensions: GraphQL](https://github.com/vikejs/vike/issues/1373).
+
+
+## Store (Vuex/Redux...)
+
+With Vike, you can manually integrate state management stores yourself, giving you complete control over the integration. See:
+
+- <Link href="/redux" />
+- <Link href="/vuex" />
+- <Link href="/pinia" />
+- <Link href="/pullstate" />
+
+> In addtion to manual integration, you will soon also have the option to use Vike Extensions for automatic integration. See [#1374 - Vike Extensions: Data Management Stores (Redux, Vuex, ...)](https://github.com/vikejs/vike/issues/1374).
+
+
+## See also
+
+- <Link href="/data" />
+- <Link href="/useData" />
+- <Link href="/api-routes" />
+- <Link href="/RPC" />

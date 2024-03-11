@@ -7,13 +7,15 @@ import { Link } from '@brillout/docpress'
 // Node.js, AWS, Cloudflare, Vercel, Deno, Bun, Lagon, ...
 import { renderPage } from 'vike/server'
 
-// 任意のサーバー: Express.js, Fastify, Hono, Cloudflare Worker, AWS Lambda Function, ...
+// 任意のサーバー: Express.js, Cloudflare Worker, AWS Lambda Function, Fastify, Hono, Nitro, ...
 server.addMiddleware({
   method: 'GET',
   route: '*', // catch-all
   async handler(request) {
     const pageContextInit = { urlOriginal: request.url }
     const pageContext = await renderPage(pageContextInit)
+    if (!pageContext.httpResponse) return null
+    // `body` is the HTML of the page with a route matching pageContextInit.urlOriginal
     const { body, statusCode, headers } = pageContext.httpResponse
     const response = { body, statusCode, headers }
     return response
@@ -21,6 +23,6 @@ server.addMiddleware({
 })
 ```
 
-汎用性があり、どんなサーバーにも組み込むことができます。
+任意のサーバに `renderPage()` を埋め込むことができます。
 
-あるいは、ページを<Link text="プリレンダリング" href="/pre-rendering" />して本番サーバーの必要性をなくし、代わりに<Link text="静的ホスト" href="/static-hosts" />にデプロイすることもできます。
+あるいは、`renderPage()`を使用する代わりに、<Link text="pre-render" href="/pre-rendering" /> あなたのページを作成し、本番サーバーの必要性をなくすことができます（そして、代わりに<Link text="static host" href="/static-hosts" /> にデプロイします）。

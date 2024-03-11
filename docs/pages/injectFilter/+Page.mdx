@@ -1,0 +1,82 @@
+import { Link, Warning } from '@brillout/docpress'
+
+The `injectFilter()` hook allows you to control which and where preload and asset tags are injected in the HTML.
+
+See <Link href="/preloading" />.
+
+## Examples
+
+ - <Link href="/examples/custom-preload/renderer/+onRenderHtml.tsx" />
+ - <Link href="/test/preload/renderer/+onRenderHtml.tsx" />
+
+## Usage
+
+> `injectFilter()` is called only in production: it has no effect in development. (Because, in development, the dependency graph is <Link href="/lazy-transpiling" >lazily discovered</Link> and therefore not fully known upon rendering HTML.)
+
+<Warning>`injectFilter()` is a beta feature. (Which means breaking changes may occur during any minor version update.)</Warning>
+
+```ts
+// /renderer/+onRenderHtml.ts
+
+export { onRenderHtml }
+
+import type { InjectFilterEntry } from 'vike/types'
+
+async function onRenderHtml(pageContext) {
+  // ...
+
+  const documentHtml = escapeInject`<!DOCTYPE html>
+    <html>
+      <body>
+        <div id="page-view">${stream}</div>
+      </body>
+    </html>`
+
+  const injectFilter = (assets: InjectFilterEntry[]): void => {
+    assets.forEach(asset => {
+      if (
+        // We don't touch entry assets (recommended)
+        asset.isEntry ||
+        // We don't touch JavaScript preloading (recommended)
+        asset.assetType === 'script'
+      ) {
+        return
+      }
+
+      // Preload images
+      if (asset.assetType === 'image') {
+        asset.inject = 'HTML_BEGIN'
+      }
+
+      // Don't preload fonts
+      if (asset.assetType === 'font') {
+        asset.inject = false
+      }
+
+      // Preload videos
+      if (asset.mediaType?.startsWith('video')) {
+        asset.inject = 'HTML_END'
+      }
+    })
+  }
+
+  return { documentHtml, injectFilter }
+}
+```
+
+```ts
+type InjectFilterEntry = {
+  inject: false | 'HTML_BEGIN' | 'HTML_END' // Whether and where to inject
+  src: string // Asset's URL
+  assetType: "image" | "script" | "font" | "style" | "audio" | "video" | "document" | "fetch" | "track" | "worker" | "embed" | "object" | null
+  mediaType: string // MIME type
+  isEntry: boolean // true  ⇒ <script> or <link rel="stylesheet" type="text/css">
+                   // false ⇒ preload tag, e.g. <link rel="preload" as="font">
+}
+```
+
+
+## See also
+
+- <Link href="/preloading" />
+- <Link href="/streaming" />

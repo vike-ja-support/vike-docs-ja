@@ -1,0 +1,228 @@
+import { HookTypeScriptHints, UiFrameworkVikeExtensionNames } from '../../components'
+import { Link } from '@brillout/docpress'
+
+> The `onBeforeRender()` hook is for expert Vike users. If you're new to Vike, we recommend using the
+> <Link href="/data">`data()` hook</Link> instead, and/or <Link href="/extensions">Vike extensions</Link> for
+> automatically integrating data fetching tools (RPC with Telefunc/tRPC, REST with Tanstack Query, GraphQL with Apollo/Relay, etc).
+
+The most notable use case for the `onBeforeRender()` hook is deep integration with data fetching tools.
+
+For simple data fetching needs, use the <Link href="/data">`data()` hook</Link> instead. As a strategy to decide which one to use, always first try to use `data()` and only use `onBeforeRender()` as a fallback if `data()` doesn't work out.
+
+The `onBeforeRender()` hook can be used to orchestrate multiple <Link href="/meta">custom hooks and settings</Link>, see:
+ - <Link href="#onbeforerender-meta" doNotInferSectionTitle />
+ - <Link href="#advanced-example" />
+
+Another common use case is to use `onBeforeRender()` as a global initializing hook. (As a temporary workaround until [#962 - New hook `onBoot()`](https://github.com/vikejs/vike/issues/962) is implemented.)
+
+
+## `onBeforeRender()` VS `data()`
+
+The central difference between the two hooks is that the value returned by `data()` always sets the value of `pageContext.data`, whereas `onBeforeRender()` can set multiple `pageContext` values.
+
+```js
+// /pages/some-page/+data.js
+
+export function data() {
+  const someValue = /* ... */
+  // pageContext.data === someValue
+  return someValue
+}
+```
+
+```js
+// /pages/some-page/+onBeforeRender.js
+
+export function onBeforeRender() {
+  const someValue1 = /* ... */
+  const someValue2 = /* ... */
+  // pageContext.prop1 === someValue1
+  // pageContext.prop2 === someValue2
+  return {
+    pageContext: {
+      prop1: someValue1,
+      prop2: someValue2
+    }
+  }
+}
+```
+
+Another difference is that the entire `pageContext.data` value is always sent to the client-side, whereas with `onBeforeRender()` you can (and have to) decide which values are sent to the client-side by using <Link href="/passToClient">`passToClient`</Link>.
+
+In a nutshell: while `onBeforeRender()` requires more manual work, it also gives you more control.
+
+
+## `onBeforeRender()` + `meta`
+
+Using `onBeforeRender()` together with custom hooks and settings (see <Link href="/meta">`meta`</Link>) is a powerful technique enabling you to implement your own tailored DX.
+
+For example.
+
+A custom setting `+sql.js` (created with `meta`):
+
+```js
+// /pages/user/+sql.js
+export default { modelName: 'User', select: ['firstName', 'lastName'] }
+```
+
+```js
+// /pages/product/+sql.js
+export default { modelName: 'Product', select: ['name', 'price'] }
+```
+
+A single global `onBeforeRender()` hook orchestrating the customm setting:
+
+```js
+// /pages/+onBeforeRender.js
+
+import { runQuery } from 'some-sql-engine'
+
+export async function onBeforeRender(pageContext) {
+  // The value exported by /pages/**/+sql.js is available at pageContext.config.sql
+  const { sql } = pageContext.config
+  const data = await runQuery(sql)
+  // ...
+}
+```
+
+See full implementation at <Link href="/meta#example-sql" doNotInferSectionTitle />.
+
+
+## Override
+
+There can be only one `onBeforeRender()` hook per page. For example, if you define a global `onBeforeRender()` hook at `/pages/+onBeforeRender.js` as well as a page-specific one at `/pages/star-wars/+onBeforeRender.js` then the page-specific one overrides the global one.
+
+> If you want multiple `onBeforeRender()` hooks, then consider:
+> - <Link href="/meta">Creating custom hooks</Link> instead: you can then use one global `onBeforeRender()` hook that orchestrates many custom hooks.
+> - Using <Link href="/data">`data()` hooks</Link>: you can then use one global `onBeforeRender()` while using page-specific `data()` hooks.
+
+You can also suppress globally defined `onBeforeRender()` hooks on a per-page basis:
+```js
+// /pages/+onBeforeRender.js
+
+// Some global onBeforeRender() hook
+export default () => {
+  // ...
+}
+```
+```js
+// /pages/some-page/+config.js
+
+export default {
+  // Suppress the global onBeforeRender() hook
+  onBeforeRender: null
+}
+```
+
+
+## Advanced example
+
+The following is an advanced example of using `onBeforeRender()` with `meta` in order to integrate data fetching tools. In particular, this approach can be used for advanced integration with GraphQL tools.
+
+> If you use a custom renderer instead of <UiFrameworkVikeExtensionNames />, then you can modify your `onRenderHtml()`/`onRenderClient()` hooks instead of doing the following.
+
+```js
+// /pages/+config.js
+// Environment: config
+
+export default {
+  // Pass the GraphQL cache to the client-side
+  passToClient: ['cache'],
+  // Modify/create hooks
+  meta: {
+    onBeforeRender: {
+      // Modify the onBeforeRender() hook to run on both the server- and client-side
+      env: { client: true, server: true }
+    },
+    // Create new hook
+    onBeforeRenderHtml: {
+      env: { server: true }
+    },
+    // Create new hook
+    onBeforeRenderClient: {
+      env: { client: true }
+    }
+  }
+}
+```
+> See:
+>  - <Link href="/meta" />
+>  - <Link href="/passToClient" />
+
+```js
+// /pages/+onBeforeRender.js
+// Environment: server or client
+
+export async function onBeforeRender(pageContext) {
+  // When run on the server-side
+  if (pageContext.config.onBeforeRenderHtml) {
+    const { pageContext } = await onBeforeRenderHtml(pageContext)
+    return { pageContext }
+  }
+  // When run on the client-side
+  if (pageContext.config.onBeforeRenderClient) {
+    await onBeforeRenderClient(pageContext)
+  }
+}
+```
+
+```js
+// /pages/+onBeforeRenderHtml.jsx
+// Environment: server
+
+import { renderToHtml } from 'my-graphql-tool/server'
+
+export async function onBeforeRenderHtml(pageContext) {
+  const { Page } = pageContext
+  // `cache` contains the data fetched by GraphQL
+  const { cache, html } = await renderToHtml(<Page />)
+  return {
+    pageContext: {
+      pageHtml: html,
+      cache
+    }
+  }
+}
+```
+
+```js
+// /pages/+onBeforeRenderClient.jsx
+// Environment: client
+
+import { hydrate } from 'my-ui-framework/client'
+import { CacheProvider } from 'my-graphql-tool/client'
+
+export function onBeforeRenderClient(pageContext) {
+  const { Page, cache } = pageContext
+  hydrate(
+    // Re-use the `cache` data that was fetched on the server-side
+    <CacheProvider cache={cache}>
+      <Page />
+    </CacheProvider>,
+    document.getElementById('root')
+  )
+}
+```
+
+
+## TypeScript
+
+```ts
+export { onBeforeRender }
+
+import type { OnBeforeRenderAsync } from 'vike/types'
+
+const onBeforeRender: OnBeforeRenderAsync = async (
+  pageContext
+): ReturnType<OnBeforeRenderAsync> => {
+  // ...
+}
+```
+
+<HookTypeScriptHints hookTypeName="OnBeforeRenderAsync" />
+
+
+## See also
+
+- <Link href="/data" />
+- <Link href="/pageContext" />

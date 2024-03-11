@@ -1,0 +1,32 @@
+The file extensions `.server.js` and `.client.js` enable you to ensure in what environment a file is loaded.
+
+```js
+// /server/database/credentials.server.js
+
+// This should *never* be imported by client-side code. We use .server.js to guarentee that.
+export default {
+  password: 'WLa!9HW?E10a'
+}
+```
+
+```js
+// /utils/someHeavyCode.server.js
+
+// Thanks to `.server.js`, this file is guarenteed to never load on the client-side: we
+// have the assurance this heavy file won't bloat the size of our client bundles.
+
+function someHeavyCode() {
+  // A *lot* of code
+}
+```
+
+```js
+// /utils/someClientCode.client.js
+
+// This code only works in the browser; we use .client.js to ensure this file is
+// never loaded on the server-side.
+
+window.onclick = () => {
+  // ...
+}
+```

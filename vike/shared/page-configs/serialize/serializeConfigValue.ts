@@ -8,8 +8,7 @@ export { serializeConfigValueImported }
 import { assertIsNotProductionRuntime } from '../../../utils/assertIsNotProductionRuntime.js'
 assertIsNotProductionRuntime()
 
-import path from 'path'
-import { assert, assertPosixPath } from '../../utils.js'
+import { assert } from '../../utils.js'
 import { ConfigValueSource } from '../PageConfig.js'
 import { ConfigValueSerialized } from './PageConfigSerialized.js'
 import { generateEagerImport } from '../../../node/plugin/plugins/importUserCode/generateEagerImport.js'
@@ -38,15 +37,11 @@ function serializeConfigValueImported(
   assert(!configValueSource.valueIsFilePath)
   assert(whitespace.replaceAll(' ', '').length === 0)
 
-  const { valueIsImportedAtRuntime, definedAt } = configValueSource
+  const { valueIsImportedAtRuntime, valueIsDefinedByValueFile, definedAt } = configValueSource
   assert(valueIsImportedAtRuntime)
   const { filePathAbsoluteVite, fileExportName } = definedAt
 
-  assertPosixPath(filePathAbsoluteVite)
-  const fileName = path.posix.basename(filePathAbsoluteVite)
-  const isValueFile = fileName.startsWith('+')
-
-  if (isValueFile) assert(fileExportName === undefined)
+  if (valueIsDefinedByValueFile) assert(fileExportName === undefined)
   const { importName, importStatement } = generateEagerImport(
     filePathAbsoluteVite,
     varCounterContainer.varCounter++,
@@ -58,8 +53,8 @@ function serializeConfigValueImported(
   lines.push(`  {`)
   lines.push(`    configName: '${configName}',`)
   lines.push(`    importPath: '${filePathAbsoluteVite}',`)
-  lines.push(`    isValueFile: ${JSON.stringify(isValueFile)},`)
-  if (isValueFile) {
+  lines.push(`    isValueFile: ${JSON.stringify(valueIsDefinedByValueFile)},`)
+  if (valueIsDefinedByValueFile) {
     lines.push(`    exportValues: ${importName},`)
   } else {
     lines.push(`    exportValue: ${importName},`)

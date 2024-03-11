@@ -1,23 +1,28 @@
+// Public use
+export { getGlobalContextSync }
+export { getGlobalContextAsync }
+
+// Internal use
 export { initGlobalContext }
 export { getGlobalContext }
 export { getViteDevServer }
 export { getViteConfig }
 export { setGlobalContext_viteDevServer }
-export { setGlobalContext_vitePreviewServer }
-export { setGlobalContext_viteConfig }
+export { setGlobalContext_prerender }
 export { getRuntimeManifest }
 
 import {
   assert,
+  assertNodeEnv_runtime,
   assertUsage,
   assertWarning,
   getGlobalObject,
-  getNodeEnv,
   isPlainObject,
-  objectAssign
+  objectAssign,
+  objectKeys
 } from './utils.js'
 import type { ViteManifest } from '../shared/ViteManifest.js'
-import type { ResolvedConfig, ViteDevServer, PreviewServer as VitePreviewServer } from 'vite'
+import type { ResolvedConfig, ViteDevServer } from 'vite'
 import { loadImportBuild } from './globalContext/loadImportBuild.js'
 import { setPageFiles } from '../../shared/getPageFiles.js'
 import { assertPluginManifest, PluginManifest } from '../shared/assertPluginManifest.js'
@@ -25,13 +30,19 @@ import type { ConfigVikeResolved } from '../../shared/ConfigVike.js'
 import { getConfigVike } from '../shared/getConfigVike.js'
 import { assertRuntimeManifest, type RuntimeManifest } from '../shared/assertRuntimeManifest.js'
 import pc from '@brillout/picocolors'
+let resolveGlobalContext: (globalContext: GlobalContext) => void
 const globalObject = getGlobalObject<{
   globalContext?: GlobalContext
+  globalContextPromise: Promise<GlobalContext>
   viteDevServer?: ViteDevServer
-  vitePreviewServer?: VitePreviewServer
   viteConfig?: ResolvedConfig
-}>('globalContext.ts', {})
+}>('globalContext.ts', {
+  globalContextPromise: new Promise((r) => (resolveGlobalContext = r))
+})
 
+type GlobalContextPublic = {
+  assetsManifest: null | ViteManifest
+}
 type GlobalContext = {
   baseServer: string
   baseAssets: null | string
@@ -44,28 +55,23 @@ type GlobalContext = {
       isProduction: false
       isPrerendering: false
       viteConfig: ResolvedConfig
-      configVike: ConfigVikeResolved
       viteDevServer: ViteDevServer
-      vitePreviewServer: null
-      clientManifest: null
+      assetsManifest: null
       pluginManifest: null
     }
   | ({
       isProduction: true
-      clientManifest: ViteManifest
+      assetsManifest: ViteManifest
       pluginManifest: PluginManifest
       viteDevServer: null
-      vitePreviewServer: null | VitePreviewServer
     } & (
       | {
           isPrerendering: false
           viteConfig: null
-          configVike: null
         }
       | {
           isPrerendering: true
           viteConfig: ResolvedConfig
-          configVike: ConfigVikeResolved
         }
     ))
 )
@@ -75,20 +81,62 @@ function getGlobalContext(): GlobalContext {
   return globalObject.globalContext
 }
 
+/** @experimental https://vike.dev/getGlobalContext */
+function getGlobalContextSync(): GlobalContextPublic {
+  assertUsage(
+    globalObject.globalContext,
+    "The global context isn't set yet, call getGlobalContextSync() later or use getGlobalContextAsync() instead."
+  )
+  return makePublic(globalObject.globalContext)
+}
+/** @experimental https://vike.dev/getGlobalContext */
+async function getGlobalContextAsync(): Promise<GlobalContextPublic> {
+  await globalObject.globalContextPromise
+  assert(globalObject.globalContext)
+  return makePublic(globalObject.globalContext)
+}
+function makePublic(globalContext: GlobalContext): GlobalContextPublic {
+  const globalContextPublic = {
+    assetsManifest: globalContext.assetsManifest
+  }
+
+  // Add internals (and prepended _ prefix to their keys)
+  {
+    const publicKeys = Object.keys(globalContextPublic)
+    objectKeys(globalContext)
+      .filter((key) => !publicKeys.includes(key))
+      .forEach((key) => {
+        const keyPublic = `_${key}`
+        Object.defineProperty(globalContextPublic, keyPublic, {
+          enumerable: true,
+          get() {
+            assertWarning(
+              false,
+              `Using internal globalContext.${keyPublic} which is discouraged: it may break in any minor version update. Instead, reach out on GitHub and elaborate your use case.`,
+              {
+                onlyOnce: true
+              }
+            )
+            return globalContext[key]
+          }
+        })
+      })
+  }
+
+  return globalContextPublic
+}
+
 function setGlobalContext_viteDevServer(viteDevServer: ViteDevServer) {
   if (globalObject.viteDevServer) return
   assert(!globalObject.globalContext)
-  globalObject.viteDevServer = viteDevServer
-}
-function setGlobalContext_vitePreviewServer(vitePreviewServer: VitePreviewServer) {
-  if (globalObject.vitePreviewServer) return
   assert(!globalObject.globalContext)
-  globalObject.vitePreviewServer = vitePreviewServer
+  globalObject.viteConfig = viteDevServer.config
+  globalObject.viteDevServer = viteDevServer
 }
 function getViteDevServer(): ViteDevServer | null {
   return globalObject.viteDevServer ?? null
 }
-function setGlobalContext_viteConfig(viteConfig: ResolvedConfig): void {
+function setGlobalContext_prerender(viteConfig: ResolvedConfig): void {
   if (globalObject.viteConfig) return
   assert(!globalObject.globalContext)
   globalObject.viteConfig = viteConfig
@@ -100,25 +148,22 @@ function getViteConfig(): ResolvedConfig | null {
 async function initGlobalContext(isPrerendering = false, outDir?: string): Promise<void> {
   if (globalObject.globalContext) return
 
-  const { viteDevServer, vitePreviewServer, viteConfig } = globalObject
-  assertNodeEnv(!!viteDevServer)
+  const { viteDevServer, viteConfig } = globalObject
+  assertNodeEnv_runtime(!!viteDevServer)
   const isProduction = !viteDevServer
 
   if (!isProduction) {
     assert(viteConfig)
     assert(!isPrerendering)
-    assert(!vitePreviewServer)
     const configVike = await getConfigVike(viteConfig)
     const pluginManifest = getRuntimeManifest(configVike)
     globalObject.globalContext = {
       isProduction: false,
       isPrerendering: false,
-      clientManifest: null,
+      assetsManifest: null,
       pluginManifest: null,
       viteDevServer,
-      vitePreviewServer: null,
       viteConfig,
-      configVike,
       baseServer: pluginManifest.baseServer,
       baseAssets: pluginManifest.baseAssets,
       includeAssetsImportedByServer: pluginManifest.includeAssetsImportedByServer,
@@ -129,16 +174,15 @@ async function initGlobalContext(isPrerendering = false, outDir?: string): Promi
   } else {
     const buildEntries = await loadImportBuild(outDir)
     assertBuildEntries(buildEntries, isPrerendering ?? false)
-    const { pageFiles, clientManifest, pluginManifest } = buildEntries
+    const { pageFiles, assetsManifest, pluginManifest } = buildEntries
     setPageFiles(pageFiles)
-    assertViteManifest(clientManifest)
+    assertViteManifest(assetsManifest)
     assertPluginManifest(pluginManifest)
     const globalContext = {
       isProduction: true as const,
-      clientManifest,
+      assetsManifest,
       pluginManifest,
       viteDevServer: null,
-      vitePreviewServer: vitePreviewServer ?? null,
       baseServer: pluginManifest.baseServer,
       baseAssets: pluginManifest.baseAssets,
       includeAssetsImportedByServer: pluginManifest.includeAssetsImportedByServer,
@@ -152,19 +196,19 @@ async function initGlobalContext(isPrerendering = false, outDir?: string): Promi
       assert(configVike)
       objectAssign(globalContext, {
         isPrerendering: true as const,
-        viteConfig,
-        configVike
+        viteConfig
       })
       globalObject.globalContext = globalContext
     } else {
       objectAssign(globalContext, {
         isPrerendering: false as const,
-        viteConfig: null,
-        configVike: null
+        viteConfig: null
       })
       globalObject.globalContext = globalContext
     }
   }
+
+  resolveGlobalContext(globalObject.globalContext)
 }
 
 function getRuntimeManifest(configVike: ConfigVikeResolved): RuntimeManifest {
@@ -204,20 +248,4 @@ function assertViteManifest(manifest: unknown): asserts manifest is ViteManifest
       assert(typeof entry.file === 'string')
     })
   */
-}
-
-function assertNodeEnv(hasViteDevServer: boolean) {
-  const nodeEnv = getNodeEnv()
-  if (nodeEnv === null || nodeEnv === 'test') return
-  const isDevNodeEnv = [undefined, '', 'dev', 'development'].includes(nodeEnv)
-  // calling Vite's createServer() is enough for hasViteDevServer to be true, even without actually adding Vite's development middleware to the server: https://github.com/vikejs/vike/issues/792#issuecomment-1516830759
-  assertWarning(
-    hasViteDevServer === isDevNodeEnv,
-    `Vite's development server was${hasViteDevServer ? '' : "n't"} instantiated while the environment is set to be a ${
-      isDevNodeEnv ? 'development' : 'production'
-    } environment by ${pc.cyan(
-      `process.env.NODE_ENV === ${JSON.stringify(nodeEnv)}`
-    )} which is contradictory, see https://vike.dev/NODE_ENV`,
-    { onlyOnce: true }
-  )
 }

@@ -1,0 +1,46 @@
+import { Link, Warning } from '@brillout/docpress'
+
+If we have pages with substantially different rendering logic,
+for example different <Link text="Render Modes" href="/render-modes" />,
+then we may want to define multiple `renderer/`.
+
+```bash
+# =====================
+# == Marketing Pages ==
+# =====================
+marketing/pages/index/+Page.js # /
+marketing/pages/about/+Page.js # /about
+marketing/pages/jobs/+Page.js # /jobs
+# Render Marketing Pages as HTML-only
+marketing/renderer/+onRenderHtml.js
+marketing/renderer/+onRenderClient.js
+marketing/+config.js # (Route to `/*` instead of `/marketing/*`.)
+
+# =================
+# == Admin Panel ==
+# =================
+admin-panel/pages/index/+Page.js
+# Render Admin Panel as SPA
+admin-panel/renderer/+onRenderHtml.js
+admin-panel/renderer/+onRenderClient.js
+```
+
+> We call such structure a <Link text="domain-driven file structure" href='/file-structure#domain-driven' />.
+
+## Partial
+
+We can also override only a subset of `renderer/`.
+
+```bash
+# Our default renderer
+renderer/+onRenderHtml.js
+renderer/+onRenderClient.js
+
+pages/some-page/index/+Page.js # Rendered with our default renderer
+
+# Our Product pages need a slightly different client-side.
+# We only override onRenderClient() while onRenderHtml() stays the same.
+pages/product/+onRenderClient.js
+pages/product/@productId/+Page.js
+pages/product/index/+Page.js
+```

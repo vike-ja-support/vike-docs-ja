@@ -6,7 +6,7 @@
 // In other words: everywhere except in production
 
 export { logViteAny }
-export { logViteErrorContainingCodeSnippet }
+export { logViteError }
 export { logConfigInfo }
 export { logConfigError }
 export { logConfigErrorRecover }
@@ -25,6 +25,7 @@ import { overwriteRuntimeProductionLogger } from '../../runtime/renderPage/logge
 import {
   assert,
   assertIsNotProductionRuntime,
+  formatHintLog,
   getAssertErrMsg,
   isUserHookError,
   overwriteAssertProductionLogger,
@@ -33,26 +34,24 @@ import {
 } from '../utils.js'
 import { getHttpRequestAsyncStore } from './getHttpRequestAsyncStore.js'
 import { isErrorDebug } from './isErrorDebug.js'
-import {
-  isErrorWithCodeSnippet,
-  getPrettyErrorWithCodeSnippet,
-  type ErrorWithCodeSnippet
-} from './loggerNotProd/errorWithCodeSnippet.js'
+import { isErrorWithCodeSnippet, getPrettyErrorWithCodeSnippet } from './loggerNotProd/errorWithCodeSnippet.js'
 import {
   getConfigExecutionErrorIntroMsg,
   getConfigBuildErrorFormatted
-} from '../plugins/importUserCode/v1-design/transpileAndExecuteFile.js'
+} from '../plugins/importUserCode/v1-design/getVikeConfig/transpileAndExecuteFile.js'
 import {
   logWithVikeTag,
   logWithViteTag,
   logDirectly,
   isFirstLog,
   screenHasErrors,
-  clearScreen
+  clearScreen,
+  applyViteSourceMapToStackTrace
 } from './loggerNotProd/log.js'
 import pc from '@brillout/picocolors'
 import { setAlreadyLogged } from '../../runtime/renderPage/isNewError.js'
 import { isConfigInvalid } from '../../runtime/renderPage/isConfigInvalid.js'
+import { onRuntimeError } from '../../runtime/renderPage/loggerProd.js'
 
 assertIsNotProductionRuntime()
 overwriteRuntimeProductionLogger(logRuntimeError, logRuntimeInfo)
@@ -92,15 +91,19 @@ function logConfigErrorRecover(): void {
 
 function logRuntimeError(
   err: unknown,
-  /** `httpRequestId` is `null` when pre-rendering */
+  // httpRequestId is `null` when pre-rendering
   httpRequestId: number | null
 ): void {
-  logErr(err, httpRequestId)
+  logErr(err, httpRequestId, false)
 }
-function logViteErrorContainingCodeSnippet(err: ErrorWithCodeSnippet): void {
-  logErr(err)
+function logViteError(
+  err: unknown,
+  // httpRequestId is `undefined` if development environment doesn't support async stores
+  httpRequestId: number | undefined
+): void {
+  logErr(err, httpRequestId, true)
 }
-function logErr(err: unknown, httpRequestId: number | null = null): void {
+function logErr(err: unknown, httpRequestId: number | null = null, errorComesFromVite: boolean): void {
   warnIfErrorIsNotObject(err)
 
   if (isAbortError(err) && !isErrorDebug()) {
@@ -146,9 +149,13 @@ function logErr(err: unknown, httpRequestId: number | null = null): void {
       category
     )
   } else if (category) {
-    logFallbackErrIntro(category)
+    logFallbackErrIntro(category, errorComesFromVite)
   }
+
   logDirectly(err, 'error')
+
+  // Needs to be called after logging the error.
+  onRuntimeError(err)
 }
 
 function logConfigError(err: unknown): void {
@@ -184,12 +191,13 @@ function logConfigError(err: unknown): void {
     if (logged) return
   }
 
-  if (category) logFallbackErrIntro(category)
+  if (category) logFallbackErrIntro(category, false)
   logDirectly(err, 'error')
 }
 
-function logFallbackErrIntro(category: LogCategory) {
-  logWithVikeTag(pc.bold(pc.red('[Error] An error was thrown:')), 'error', category)
+function logFallbackErrIntro(category: LogCategory, errorComesFromVite: boolean) {
+  const msg = errorComesFromVite ? 'Transpilation error' : 'An error was thrown'
+  logWithVikeTag(pc.bold(pc.red(`[Error] ${msg}:`)), 'error', category)
 }
 
 function getConfigCategory(): LogCategory {
@@ -205,6 +213,8 @@ function handleAssertMsg(err: unknown, category: LogCategory | null): boolean {
   return true
 }
 function assertLogger(thing: string | Error, logType: LogType): void {
+  // vite.ssrFixStacktrace() is needed for `assertWarning(..., { showStackTrace: true })`
+  applyViteSourceMapToStackTrace(thing)
   const category = getCategory()
   const res = getAssertErrMsg(thing)
   /* Risk of infinite loop
@@ -245,13 +255,7 @@ function logErrorDebugNote() {
     if (store.errorDebugNoteAlreadyShown) return
     store.errorDebugNoteAlreadyShown = true
   }
-  const msg = pc.dim(
-    [
-      '┌──────────────────────────────────────────────────────────┐',
-      "│ Error isn't helpful? See https://vike.dev/errors#verbose │",
-      '└──────────────────────────────────────────────────────────┘'
-    ].join('\n')
-  )
+  const msg = pc.dim(formatHintLog("Error isn't helpful? See https://vike.dev/errors#verbose"))
   logDirectly(msg, 'error')
 }
 

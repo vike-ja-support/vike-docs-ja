@@ -11,17 +11,19 @@ import {
   assert,
   assertPosixPath,
   viteIsSSR_options,
-  isNotNullish,
   scriptFileExtensions,
   debugGlob,
-  getOutDirs
+  getOutDirs,
+  isVersionOrAbove,
+  assertWarning
 } from '../../utils.js'
 import type { ConfigVikeResolved } from '../../../../shared/ConfigVike.js'
 import { isVirtualFileIdImportUserCode } from '../../../shared/virtual-files/virtualFileImportUserCode.js'
-import { type FileType, fileTypes, determineFileType } from '../../../../shared/getPageFiles/fileTypes.js'
+import { version as viteVersion } from 'vite'
+import { type FileType, fileTypes } from '../../../../shared/getPageFiles/fileTypes.js'
 import path from 'path'
 import { getVirtualFilePageConfigs } from './v1-design/getVirtualFilePageConfigs.js'
-import { generateEagerImport } from './generateEagerImport.js'
+import { isV1Design as isV1Design_ } from './v1-design/getVikeConfig.js'
 
 type GlobRoot = {
   includeDir: string // slash-terminated
@@ -59,7 +61,7 @@ async function getCode(
   assert(isDev === !isBuild)
   let content = ''
   {
-    const globRoots = getGlobRoots(config, configVike)
+    const globRoots = getGlobRoots(config)
     debugGlob('Glob roots: ', globRoots)
     content += await generateGlobImports(
       globRoots,
@@ -73,62 +75,8 @@ async function getCode(
       id
     )
   }
-  {
-    const extensionsImportPaths = configVike.extensions
-      .map(({ pageConfigsDistFiles }) => pageConfigsDistFiles)
-      .flat()
-      .filter(isNotNullish)
-      .map(({ importPath }) => importPath)
-    content += generateExtensionImports(
-      extensionsImportPaths,
-      isForClientSide,
-      isBuild,
-      isClientRouting,
-      isPrerendering
-    )
-  }
   debugGlob(`Glob imports for ${isForClientSide ? 'client' : 'server'}:\n`, content)
   return content
-}
-
-function generateExtensionImports(
-  extensionsImportPaths: string[],
-  isForClientSide: boolean,
-  isBuild: boolean,
-  isClientRouting: boolean,
-  isPrerendering: boolean
-) {
-  let fileContent = '\n\n'
-  extensionsImportPaths
-    .filter((importPath) => {
-      assert(
-        // V1 design
-        importPath.includes('+') ||
-          // V0.4 design
-          importPath.includes('.page.')
-      )
-      return !importPath.includes('+')
-    })
-    .forEach((importPath) => {
-      const fileType = determineFileType(importPath)
-      const { includeImport, includeExportNames } = determineInjection({
-        fileType,
-        isForClientSide,
-        isClientRouting,
-        isPrerendering,
-        isBuild
-      })
-      if (includeImport) {
-        fileContent += addImport(importPath, fileType, false, isBuild)
-      }
-      if (includeExportNames) {
-        fileContent += addImport(importPath, fileType, true, isBuild)
-      }
-      if (!includeImport && !includeExportNames && !isForClientSide) {
-        fileContent += `pageFilesList.push("${importPath}");` + '\n'
-      }
-    })
-  return fileContent
 }
 
 function determineInjection({
@@ -168,41 +116,6 @@ function determineInjection({
   }
 }
 
-function addImport(importPath: string, fileType: FileType, exportNames: boolean, isBuild: boolean): string {
-  const pageFilesVar: PageFileVar = (() => {
-    if (exportNames) {
-      if (isBuild) {
-        return 'pageFilesExportNamesEager'
-      } else {
-        return 'pageFilesExportNamesLazy'
-      }
-    } else {
-      if (fileType === '.page.route') {
-        return 'pageFilesEager'
-      } else {
-        return 'pageFilesLazy'
-      }
-    }
-  })()
-  const query = !exportNames ? '' : '?extractExportNames'
-
-  let fileContent = ''
-  const mapVar = `${pageFilesVar}['${fileType}']`
-  fileContent += `${mapVar} = ${mapVar} ?? {};\n`
-  const value = (() => {
-    if (!pageFilesVar.endsWith('Eager')) {
-      return `() => import('${importPath}${query}')`
-    } else {
-      const { importName, importStatement } = generateEagerImport(`${importPath}${query}`)
-      fileContent += importStatement + '\n'
-      return importName
-    }
-  })()
-  fileContent += `${mapVar}['${importPath}'] = ${value};\n`
-
-  return fileContent
-}
-
 async function generateGlobImports(
   globRoots: GlobRoot[],
   isBuild: boolean,
@@ -228,6 +141,9 @@ ${await getVirtualFilePageConfigs(isForClientSide, isDev, id, isClientRouting, c
 
 `
 
+  // We still use import.meta.glob() when using th V1 design in order to not break the V1 design deprecation warning
+  const isV1Design = await isV1Design_(config, isDev)
+
   fileTypes
     .filter((fileType) => fileType !== '.css')
     .forEach((fileType) => {
@@ -240,14 +156,14 @@ ${await getVirtualFilePageConfigs(isForClientSide, isDev, id, isClientRouting, c
         isBuild
       })
       if (includeImport) {
-        fileContent += getGlobs(globRoots, isBuild, fileType)
+        fileContent += getGlobs(globRoots, isBuild, fileType, null, isV1Design)
       }
       if (includeExportNames) {
-        fileContent += getGlobs(globRoots, isBuild, fileType, 'extractExportNames')
+        fileContent += getGlobs(globRoots, isBuild, fileType, 'extractExportNames', isV1Design)
       }
     })
   if (configVike.includeAssetsImportedByServer && isForClientSide) {
-    fileContent += getGlobs(globRoots, isBuild, '.page.server', 'extractAssets')
+    fileContent += getGlobs(globRoots, isBuild, '.page.server', 'extractAssets', isV1Design)
   }
 
   return fileContent
@@ -264,7 +180,8 @@ function getGlobs(
   globRoots: GlobRoot[],
   isBuild: boolean,
   fileType: Exclude<FileType, '.css'>,
-  query?: 'extractExportNames' | 'extractAssets'
+  query: 'extractExportNames' | 'extractAssets' | null,
+  isV1Design: boolean
 ): string {
   const isEager = isBuild && (query === 'extractExportNames' || fileType === '.page.route')
 
@@ -304,10 +221,27 @@ function getGlobs(
       varNameLocals.push(varNameLocal)
       const globIncludePath = `'${getGlobPath(globRoot.includeDir, fileType)}'`
       const globExcludePath = globRoot.excludeDir ? `'!${getGlobPath(globRoot.excludeDir, fileType)}'` : null
-      const globOptions = JSON.stringify({ eager: isEager, as: query })
-      assert(globOptions.startsWith('{"eager":true') || globOptions.startsWith('{"eager":false'))
+      const globOptions: Record<string, unknown> = { eager: isEager }
+      if (query) {
+        const isNewViteInterface = isVersionOrAbove(viteVersion, '5.1.0')
+        if (
+          isNewViteInterface &&
+          // When used for the old design, the new syntax breaks Vike's CI (surprinsigly so). I couldn't reproduce locally (I didn't dig much).
+          isV1Design
+        ) {
+          globOptions.query = `?${query}`
+        } else {
+          globOptions.as = query
+          const msg = [
+            "Update to the new V1 design to get rid of Vite's warning:",
+            'The glob option "as" has been deprecated in favour of "query".',
+            'See https://vike.dev/migration/v1-design for how to migrate.'
+          ].join(' ')
+          assertWarning(!isNewViteInterface, msg, { onlyOnce: true })
+        }
+      }
       const globPaths = globExcludePath ? `[${globIncludePath}, ${globExcludePath}]` : `[${globIncludePath}]`
-      const globLine = `const ${varNameLocal} = import.meta.glob(${globPaths}, ${globOptions});`
+      const globLine = `const ${varNameLocal} = import.meta.glob(${globPaths}, ${JSON.stringify(globOptions)});`
       return globLine
     }),
     `const ${varName} = {${varNameLocals.map((varNameLocal) => `...${varNameLocal}`).join(',')}};`,
@@ -316,22 +250,13 @@ function getGlobs(
   ].join('\n')
 }
 
-function getGlobRoots(config: ResolvedConfig, configVike: ConfigVikeResolved): GlobRoot[] {
+function getGlobRoots(config: ResolvedConfig): GlobRoot[] {
   const globRoots: GlobRoot[] = [
     {
       includeDir: '/',
       excludeDir: path.posix.relative(config.root, getOutDirs(config).outDirRoot)
     }
   ]
-  configVike.extensions
-    .map(({ pageConfigsSrcDir }) => pageConfigsSrcDir)
-    .filter(isNotNullish)
-    .forEach((pageConfigsSrcDir) => {
-      const globRoot: GlobRoot = {
-        includeDir: path.posix.relative(config.root, pageConfigsSrcDir)
-      }
-      globRoots.push(globRoot)
-    })
   return globRoots
 }
 
