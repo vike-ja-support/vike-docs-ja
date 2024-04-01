@@ -84,7 +84,7 @@ const headings = [
   {
     level: 2,
     title: '認証',
-    url: '/auth',
+    url: '/auth'
   },
   {
     level: 2,

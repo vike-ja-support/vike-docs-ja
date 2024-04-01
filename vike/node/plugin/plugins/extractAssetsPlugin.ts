@@ -16,7 +16,6 @@ import {
   assertPosixPath,
   styleFileRE,
   createDebugger,
-  isDebugEnabled,
   isScriptFile,
   resolveVirtualFileId,
   isVirtualFileId,
@@ -41,9 +40,7 @@ const rawRE = /(\?|&)raw(?:&|$)/
 const urlRE = /(\?|&)url(?:&|$)/
 const EMPTY_MODULE_ID = 'virtual:vike:empty-module'
 
-const debugNamespace = 'vike:extractAssets'
-const debug = createDebugger(debugNamespace)
-const debugEnabled = isDebugEnabled(debugNamespace)
+const debug = createDebugger('vike:extractAssets')
 
 function extractAssetsPlugin(): Plugin[] {
   let config: ResolvedConfig
@@ -149,12 +146,6 @@ function extractAssetsPlugin(): Plugin[] {
     {
       name: 'vike:extractAssets-3',
       apply: 'build',
-      async configResolved(config_) {
-        configVike = await getConfigVike(config_)
-        config = config_
-        vikeConfig = await getVikeConfig(config, false)
-        isServerAssetsFixEnabled = fixServerAssets_isEnabled() && (await isV1Design(config, false))
-      },
       load(id) {
         if (!isVirtualFileId(id)) return undefined
         id = getVirtualFileId(id)
@@ -164,19 +155,25 @@ function extractAssetsPlugin(): Plugin[] {
         }
       },
       config() {
-        if (debugEnabled) {
+        if (debug.isActivated) {
           return { logLevel: 'silent' }
         }
       }
     },
     {
       name: 'vike:extractAssets-4',
-      configResolved(config) {
-        // https://github.com/vikejs/vike/issues/1060
-        assertUsage(
-          !config.plugins.find((p) => p.name === 'vite-tsconfig-paths'),
-          'vite-tsconfig-paths not supported, remove it and use vite.config.js#resolve.alias instead'
-        )
+      async configResolved(config_) {
+        configVike = await getConfigVike(config_)
+        config = config_
+        vikeConfig = await getVikeConfig(config, false)
+        isServerAssetsFixEnabled = fixServerAssets_isEnabled() && (await isV1Design(config, false))
+        if (!isServerAssetsFixEnabled) {
+          // https://github.com/vikejs/vike/issues/1060
+          assertUsage(
+            !config.plugins.find((p) => p.name === 'vite-tsconfig-paths'),
+            'vite-tsconfig-paths not supported, remove it and use vite.config.js#resolve.alias instead'
+          )
+        }
       }
     }
   ]

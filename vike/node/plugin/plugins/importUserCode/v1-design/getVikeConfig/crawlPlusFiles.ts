@@ -7,25 +7,28 @@ import {
   assertWarning,
   scriptFileExtensionList,
   scriptFileExtensions,
-  getGlobalObject,
-  humanizeTime
+  humanizeTime,
+  assertIsSingleModuleInstance,
+  assertIsNotProductionRuntime,
+  isVersionOrAbove
 } from '../../../../utils.js'
 import path from 'path'
 import glob from 'fast-glob'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import pc from '@brillout/picocolors'
+import { isTemporaryBuildFile } from './transpileAndExecuteFile.js'
 const execA = promisify(exec)
 
-const globalObject = getGlobalObject('crawlPlusFiles.ts', {
-  gitIsMissing: false
-})
+assertIsNotProductionRuntime()
+assertIsSingleModuleInstance('crawlPlusFiles.ts')
+let gitIsNotUsable = false
 
 async function crawlPlusFiles(
   userRootDir: string,
   outDirAbsoluteFilesystem: string,
   isDev: boolean
-): Promise<{ filePathRelativeToUserRootDir: string }[]> {
+): Promise<{ filePathAbsoluteUserRootDir: string }[]> {
   assertPosixPath(userRootDir)
   assertPosixPath(outDirAbsoluteFilesystem)
   let outDirRelativeFromUserRootDir: string | null = path.posix.relative(userRootDir, outDirAbsoluteFilesystem)
@@ -49,6 +52,8 @@ async function crawlPlusFiles(
     files = await fastGlob(userRootDir, outDirRelativeFromUserRootDir)
   }
 
+  files = files.filter((file) => !isTemporaryBuildFile(file))
+
   {
     const timeAfter = new Date().getTime()
     const timeSpent = timeAfter - timeBefore
@@ -70,8 +75,8 @@ async function crawlPlusFiles(
   const plusFiles = files.map((p) => {
     p = toPosixPath(p)
     assert(!p.startsWith(userRootDir))
-    const filePathRelativeToUserRootDir = path.posix.join('/', p)
-    return { filePathRelativeToUserRootDir }
+    const filePathAbsoluteUserRootDir = path.posix.join('/', p)
+    return { filePathAbsoluteUserRootDir }
   })
 
   return plusFiles
@@ -79,7 +84,7 @@ async function crawlPlusFiles(
 
 // Same as fastGlob() but using `$ git ls-files`
 async function gitLsFiles(userRootDir: string, outDirRelativeFromUserRootDir: string | null): Promise<string[] | null> {
-  if (globalObject.gitIsMissing) return null
+  if (gitIsNotUsable) return null
 
   const ignoreAsPatterns = getIgnoreAsPatterns(outDirRelativeFromUserRootDir)
   const ignoreAsFilterFn = getIgnoreAsFilterFn(outDirRelativeFromUserRootDir)
@@ -98,13 +103,13 @@ async function gitLsFiles(userRootDir: string, outDirRelativeFromUserRootDir: st
   try {
     ;[files, filesDeleted] = await Promise.all([
       // Main command
-      runCmd(cmd, userRootDir),
+      runCmd1(cmd, userRootDir),
       // Get tracked by deleted files
-      runCmd('git ls-files --deleted', userRootDir)
+      runCmd1('git ls-files --deleted', userRootDir)
     ])
   } catch (err) {
-    if (await isGitMissing(userRootDir)) {
-      globalObject.gitIsMissing = true
+    if (await isGitNotUsable(userRootDir)) {
+      gitIsNotUsable = true
       return null
     }
     throw err
@@ -153,24 +158,50 @@ function getIgnoreAsFilterFn(outDirRelativeFromUserRootDir: string | null): (fil
     (outDirRelativeFromUserRootDir === null || !file.startsWith(`${outDirRelativeFromUserRootDir}/`))
 }
 
-// Whether Git is installed and whether userRootDir is inside a Git repository
-async function isGitMissing(userRootDir: string) {
-  let res: Awaited<ReturnType<typeof execA>>
-  try {
-    res = await execA('git rev-parse --is-inside-work-tree', { cwd: userRootDir })
-  } catch {
-    return true
+// Whether Git is installed and whether we can use it
+async function isGitNotUsable(userRootDir: string) {
+  // Check Git version
+  {
+    const res = await runCmd2('git --version', userRootDir)
+    if ('err' in res) return true
+    let { stdout, stderr } = res
+    assert(stderr === '')
+    const prefix = 'git version '
+    assert(stdout.startsWith(prefix))
+    const gitVersion = stdout.slice(prefix.length)
+    //  - Works with Git 2.43.1 but also (most certainly) with earlier versions.
+    //    - We didn't bother test which is the earliest verision that works.
+    //  - Git 2.32.0 doesn't seem to work: https://github.com/vikejs/vike/discussions/1549
+    //    - Maybe it's because of StackBlitz: looking at the release notes, Git 2.32.0 should be working.
+    if (!isVersionOrAbove(gitVersion, '2.43.1')) return true
   }
-  const { stdout, stderr } = res
-  assert(stderr.toString().trim() === '')
-  assert(stdout.toString().trim() === 'true')
-  return false
+  // Is userRootDir inside a Git repository?
+  {
+    const res = await runCmd2('git rev-parse --is-inside-work-tree', userRootDir)
+    if ('err' in res) return true
+    let { stdout, stderr } = res
+    assert(stderr === '')
+    assert(stdout === 'true')
+    return false
+  }
 }
 
-async function runCmd(cmd: string, cwd: string): Promise<string[]> {
-  const res = await execA(cmd, { cwd })
+async function runCmd1(cmd: string, cwd: string): Promise<string[]> {
+  const { stdout } = await execA(cmd, { cwd })
   /* Not always true: https://github.com/vikejs/vike/issues/1440#issuecomment-1892831303
   assert(res.stderr === '')
   */
-  return res.stdout.toString().split('\n').filter(Boolean)
+  return stdout.toString().split('\n').filter(Boolean)
+}
+async function runCmd2(cmd: string, cwd: string): Promise<{ err: unknown } | { stdout: string; stderr: string }> {
+  let res: Awaited<ReturnType<typeof execA>>
+  try {
+    res = await execA(cmd, { cwd })
+  } catch (err) {
+    return { err }
+  }
+  let { stdout, stderr } = res
+  stdout = stdout.toString().trim()
+  stderr = stderr.toString().trim()
+  return { stdout, stderr }
 }

@@ -1,3 +1,57 @@
+## [0.4.168](https://github.com/vikejs/vike/compare/v0.4.167...v0.4.168) (2024-03-30)
+
+
+### Bug Fixes
+
+* always use esbuild to resolve import paths (fix [#1580](https://github.com/vikejs/vike/issues/1580)) ([4996ef0](https://github.com/vikejs/vike/commit/4996ef0fe9c2f9fdb824f20c5c4388e80cfa2519))
+* clean esbuild errros ([ea598f8](https://github.com/vikejs/vike/commit/ea598f8e2e192510fa44e59ec189737911b0f439))
+* don't send superfluous JavaScript Early Hint for HTML-only page (fix [#1574](https://github.com/vikejs/vike/issues/1574)) ([14e4b5e](https://github.com/vikejs/vike/commit/14e4b5e362841ad98a084927ba2a6ed344295b6b))
+* enable tools to monkey path `history.pushState()` to listen to Vike navigations ([#1582](https://github.com/vikejs/vike/issues/1582)) ([b4b3e0c](https://github.com/vikejs/vike/commit/b4b3e0ccaa0ab48864cae74a280632f7538c3815))
+* improve DX & docs upon using vike-{react,vue,solid} configs without installing (fix [#1578](https://github.com/vikejs/vike/issues/1578)) ([c08a6bb](https://github.com/vikejs/vike/commit/c08a6bbeb8edb2411504a3313ad9c8841fca0c6d))
+* improve error message upon non-existing import path in +config.js (fix [#1576](https://github.com/vikejs/vike/issues/1576)) ([1525f69](https://github.com/vikejs/vike/commit/1525f691f32e9bdcb929543f490a042e5be9c9be))
+* improve hint for CJS/ESM error ([e0596ba](https://github.com/vikejs/vike/commit/e0596ba47c7476d51b06520e3ec48f8accf8275c))
+* improve tmp build file names ([ee414f3](https://github.com/vikejs/vike/commit/ee414f34f5b5e7349d007f612f25ead3dd082122))
+* remove superfluous user-land extends warning ([28dc27a](https://github.com/vikejs/vike/commit/28dc27a213d396a8b9094be41bdaf29fa25a8120))
+
+
+
+## [0.4.167](https://github.com/vikejs/vike/compare/v0.4.166...v0.4.167) (2024-03-22)
+
+
+### Bug Fixes
+
+* allow vite-tsconfig-paths again ([a5e2596](https://github.com/vikejs/vike/commit/a5e25969f0787d1caf390fadf2e28cbecdfae155))
+* call onPageTransitionStart() earlier (fix [#1560](https://github.com/vikejs/vike/issues/1560)) ([1a3a59f](https://github.com/vikejs/vike/commit/1a3a59f8dfc1d6fe054a5c298df5c304a12f23a5))
+* improve DEBUG flags DX ([0f5ac02](https://github.com/vikejs/vike/commit/0f5ac0229900af1964a1efdffda1f54a86cbda80))
+* only call page transition hooks if page was rendered before ([e334999](https://github.com/vikejs/vike/commit/e3349998ce75f502967e35c85f3caa014e601780))
+* remove faulty assertion (fix [#1571](https://github.com/vikejs/vike/issues/1571)) ([b457127](https://github.com/vikejs/vike/commit/b45712739a1022aa9c2603da85c9f008e21055c3))
+* support path aliases that look like npm package imports (fix [#1146](https://github.com/vikejs/vike/issues/1146)) ([8b5827e](https://github.com/vikejs/vike/commit/8b5827efd11ec2af28409d5e43d5e2f146df905d))
+* update error message upon no page find found ([#1570](https://github.com/vikejs/vike/issues/1570)) ([d7b56d6](https://github.com/vikejs/vike/commit/d7b56d68c9829b5f2cee59210c201ea77d8228a3))
+
+
+
+## [0.4.166](https://github.com/vikejs/vike/compare/v0.4.165...v0.4.166) (2024-03-19)
+
+
+### Bug Fixes
+
+* add `Vike.Config` to `PageContextConfig` (fix [#1532](https://github.com/vikejs/vike/issues/1532)) ([74b18b0](https://github.com/vikejs/vike/commit/74b18b0dbd21600f0a15d0871da437bc1d57caf1))
+* conservatively preserve all assets in dist/server (fix [#1154](https://github.com/vikejs/vike/issues/1154)) ([6dfef11](https://github.com/vikejs/vike/commit/6dfef11d74c420b5d695f0897f1d292f3b8b7e95))
+* emphasize CJS/ESM error hint ([3e344b9](https://github.com/vikejs/vike/commit/3e344b9734c267bc43abd7e49402456aebc4cc18))
+* generate assets.json early (fix [#1527](https://github.com/vikejs/vike/issues/1527)) ([2598887](https://github.com/vikejs/vike/commit/259888792f8906282951f89d7602ce1c2a601cb8))
+* improve handling of unsuable Git ([#1549](https://github.com/vikejs/vike/issues/1549)) ([42d58ff](https://github.com/vikejs/vike/commit/42d58ff9d9aa9eb27c7495e216ecaf3e29970614))
+* improve HTTP request error message upon Vike config error ([e405b77](https://github.com/vikejs/vike/commit/e405b7795328582bef08d4a4e24b8fa5abb7170d))
+* improve logging upon skipped HTTP request ([0e4145b](https://github.com/vikejs/vike/commit/0e4145b03b2b5d6f6f6673ccc3d0a4084cfe674f))
+* improve package.json#exports by adding import export ([#1382](https://github.com/vikejs/vike/issues/1382)) ([c270210](https://github.com/vikejs/vike/commit/c27021060034f5245873cc196e700d5e54cbb427))
+* improve package.json#exports by making require export last ([#1382](https://github.com/vikejs/vike/issues/1382)) ([ca218b3](https://github.com/vikejs/vike/commit/ca218b3f9b0277e9ad6f47bae1e5e2d87a076732))
+* improve package.json#exports order ([#1382](https://github.com/vikejs/vike/issues/1382)) ([7def2dd](https://github.com/vikejs/vike/commit/7def2ddd8d5019e9f29cc23a9469d767fe8b8bdc))
+* injectBreakLines regex speedup ([b3cc3cb](https://github.com/vikejs/vike/commit/b3cc3cb82439a42e2d14ef5b34d70131f7c8e152))
+* package.json#exports replace "import" with "default" ([#1382](https://github.com/vikejs/vike/issues/1382)) ([6942f61](https://github.com/vikejs/vike/commit/6942f61589d038a4d3d51f3a7e08fbe1eddf5383))
+* rename `triggedBy` to `triggeredBy` (fix [#1563](https://github.com/vikejs/vike/issues/1563)) ([a08160f](https://github.com/vikejs/vike/commit/a08160fb3465d126a49c41863308200e73960493))
+* support Electron by adding 'file://' protocol (fix [#1557](https://github.com/vikejs/vike/issues/1557)) ([8eba585](https://github.com/vikejs/vike/commit/8eba58501bb593a26de94543e55145e6c4fa08a7))
+
+
+
 ## [0.4.165](https://github.com/vikejs/vike/compare/v0.4.164...v0.4.165) (2024-03-01)
 
 

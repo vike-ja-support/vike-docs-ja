@@ -2,7 +2,7 @@ export { determineOptimizeDeps }
 
 import type { ResolvedConfig } from 'vite'
 import { findPageFiles } from '../../shared/findPageFiles.js'
-import { assert, getFilePathAbsolute, isNpmPackageImport, unique } from '../../utils.js'
+import { assert, assertIsNpmPackageImport, createDebugger, unique } from '../../utils.js'
 import { getVikeConfig } from '../importUserCode/v1-design/getVikeConfig.js'
 import { getConfigValueSourcesNotOverriden } from '../../shared/getConfigValueSourcesNotOverriden.js'
 import { analyzeClientEntries } from '../buildConfig.js'
@@ -11,6 +11,9 @@ import {
   virtualFileIdImportUserCodeClientCR,
   virtualFileIdImportUserCodeClientSR
 } from '../../../shared/virtual-files/virtualFileImportUserCode.js'
+import { getFilePathResolved } from '../../shared/getFilePath.js'
+
+const debug = createDebugger('vike:optimizeDeps')
 
 async function determineOptimizeDeps(config: ResolvedConfig, isDev: true) {
   const { pageConfigs } = await getVikeConfig(config, isDev)
@@ -31,7 +34,11 @@ async function determineOptimizeDeps(config: ResolvedConfig, isDev: true) {
   config.optimizeDeps.include = [...include, ...normalizeInclude(config.optimizeDeps.include)]
   config.optimizeDeps.entries = [...entries, ...normalizeEntries(config.optimizeDeps.entries)]
 
-  // console.log('config.optimizeDeps', { entries: config.optimizeDeps.entries, include: config.optimizeDeps.include })
+  if (debug.isActivated)
+    debug('config.optimizeDeps', {
+      'config.optimizeDeps.entries': config.optimizeDeps.entries,
+      'config.optimizeDeps.include': config.optimizeDeps.include
+    })
 }
 
 async function getPageDeps(config: ResolvedConfig, pageConfigs: PageConfigBuildTime[], isDev: true) {
@@ -47,7 +54,7 @@ async function getPageDeps(config: ResolvedConfig, pageConfigs: PageConfigBuildT
 
         if (!configEnv.client) return
 
-        if (definedAt.filePathRelativeToUserRootDir !== null) {
+        if (definedAt.filePathAbsoluteUserRootDir !== null) {
           const { filePathAbsoluteFilesystem } = definedAt
           assert(filePathAbsoluteFilesystem)
           // Surprisingly Vite expects entries to be absolute paths
@@ -55,23 +62,10 @@ async function getPageDeps(config: ResolvedConfig, pageConfigs: PageConfigBuildT
         } else {
           // Adding definedAt.filePathAbsoluteFilesystem doesn't work for npm packages, I guess because of Vite's config.server.fs.allow
           const { importPathAbsolute } = definedAt
-          assert(importPathAbsolute)
-          // We need to differentiate between npm package imports and path aliases.
-          // There are path aliases that cannot be distinguished from npm package names.
-          // We recommend users to use the '#' prefix convention for path aliases, see https://vike.dev/path-aliases#vite and assertResolveAlias()
-          if (isNpmPackageImport(importPathAbsolute)) {
-            // isNpmPackageImport() returns false for a path alias like #root/renderer/onRenderClient
-            assert(!importPathAbsolute.startsWith('#'))
-            include.push(importPathAbsolute)
-          } else {
-            /* Path aliases, e.g.:
-             * ```js
-             * // /renderer/+config.js
-             * import onRenderClient from '#root/renderer/onRenderClient'
-             * ```
-             */
-            entries.push(importPathAbsolute)
-          }
+          assert(importPathAbsolute) // Help TS
+          // Shouldn't be a path alias, as path aliases would need to be added to config.optimizeDeps.entries instead of config.optimizeDeps.include
+          assertIsNpmPackageImport(importPathAbsolute)
+          include.push(importPathAbsolute)
         }
       })
     })
@@ -80,9 +74,12 @@ async function getPageDeps(config: ResolvedConfig, pageConfigs: PageConfigBuildT
   // V0.4 design
   {
     const pageFiles = await findPageFiles(config, ['.page', '.page.client'], isDev)
-    pageFiles.forEach((filePath) => {
-      const entry = getFilePathAbsolute(filePath, config)
-      entries.push(entry)
+    const userRootDir = config.root
+    pageFiles.forEach((filePathAbsoluteUserRootDir) => {
+      const entry = getFilePathResolved({ filePathAbsoluteUserRootDir, userRootDir })
+      const { filePathAbsoluteFilesystem } = entry
+      assert(filePathAbsoluteFilesystem)
+      entries.push(filePathAbsoluteFilesystem)
     })
   }
 

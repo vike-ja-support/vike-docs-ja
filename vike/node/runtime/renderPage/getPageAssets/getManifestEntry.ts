@@ -1,8 +1,7 @@
 export { getManifestEntry }
 
 import type { ViteManifest, ViteManifestEntry } from '../../../shared/ViteManifest.js'
-import { assert, slice, isNpmPackageImport } from '../../utils.js'
-import { assertClientEntryId } from './assertClientEntryId.js'
+import { assert, slice, assertIsNpmPackageImport } from '../../utils.js'
 import { isVirtualFileIdPageConfigValuesAll } from '../../../shared/virtual-files/virtualFilePageConfigValuesAll.js'
 import { prependEntriesDir } from '../../../shared/prependEntriesDir.js'
 
@@ -10,7 +9,6 @@ function getManifestEntry(
   id: string,
   assetsManifest: ViteManifest
 ): { manifestKey: string; manifestEntry: ViteManifestEntry } {
-  assertClientEntryId(id)
   const debugInfo = getDebugInfo(id, assetsManifest)
 
   // Vike client entry
@@ -52,13 +50,13 @@ function getManifestEntry(
   }
 
   // npm package import
-  if (isNpmPackageImport(id)) {
-    const found = Object.entries(assetsManifest).find(([, e]) => e.name === prependEntriesDir(id))
-    assert(found)
-    const [manifestKey, manifestEntry] = found
-    return { manifestEntry, manifestKey }
-  }
+  assertIsNpmPackageImport(id)
+  const found = Object.entries(assetsManifest).find(([, e]) => e.name === prependEntriesDir(id))
+  assert(found)
+  const [manifestKey, manifestEntry] = found
+  return { manifestEntry, manifestKey }
 
+  /* Can we remove this?
   // extensions[number].pageConfigsSrcDir
   if (id.startsWith('/node_modules/') || id.startsWith('/../')) {
     let manifestKeyEnd = id.split('/node_modules/').slice(-1)[0]
@@ -88,8 +86,7 @@ function getManifestEntry(
     }
     assert(false, debugInfo)
   }
-
-  assert(false, debugInfo)
+  */
 }
 
 function findEntryWithKeyEnd(manifestKeyEnd: string, assetsManifest: ViteManifest, id: string) {

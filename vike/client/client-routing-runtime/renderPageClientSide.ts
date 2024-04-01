@@ -37,13 +37,15 @@ import { setScrollPosition, type ScrollTarget } from './setScrollPosition.js'
 import { updateState } from './onBrowserHistoryNavigation.js'
 import { browserNativeScrollRestoration_disable, setInitialRenderIsDone } from './scrollRestoration.js'
 import { getErrorPageId } from '../../shared/error-page.js'
+import type { PageContextExports } from '../../shared/getPageFiles.js'
 
 const globalObject = getGlobalObject<{
   clientRoutingIsDisabled?: true
   renderCounter: number
   onRenderClientPromise?: Promise<unknown>
+  isFirstRenderDone?: true
   isTransitioning?: true
-  previousPageContext?: { _pageId: string }
+  previousPageContext?: { _pageId: string } & PageContextExports
 }>('renderPageClientSide.ts', { renderCounter: 0 })
 
 type RenderArgs = {
@@ -71,7 +73,7 @@ async function renderPageClientSide(renderArgs: RenderArgs): Promise<void> {
 
   // isHydrationRender <=> the first render attempt
   const { isRenderOutdated, setHydrationCanBeAborted, isHydrationRender } = getIsRenderOutdated()
-  assert(isClientSideNavigation === !isHydrationRender)
+  assert(isClientSideNavigation === !isHydrationRender) // isHydrationRender === (renderNumber === 1)
   assertNoInfiniteAbortLoop(pageContextsFromRewrite.length, redirectCount)
 
   if (globalObject.clientRoutingIsDisabled) {
@@ -90,6 +92,30 @@ async function renderPageClientSide(renderArgs: RenderArgs): Promise<void> {
 
     const pageContext = await getPageContextBegin()
     if (isRenderOutdated()) return
+
+    // onPageTransitionStart()
+    if (globalObject.isFirstRenderDone) {
+      const { previousPageContext } = globalObject
+      assert(previousPageContext)
+      // We use the hook of the previous page in order to be able to call onPageTransitionStart() before fetching the files of the next page.
+      // https://github.com/vikejs/vike/issues/1560
+      assertHook(previousPageContext, 'onPageTransitionStart')
+      if (!globalObject.isTransitioning) {
+        globalObject.isTransitioning = true
+        const onPageTransitionStartHook = getHook(previousPageContext, 'onPageTransitionStart')
+        if (onPageTransitionStartHook) {
+          const hook = onPageTransitionStartHook
+          const { hookFn } = hook
+          try {
+            await executeHook(() => hookFn(pageContext), hook)
+          } catch (err) {
+            await onError(err)
+            return
+          }
+          if (isRenderOutdated()) return
+        }
+      }
+    }
 
     // Route
     let pageContextRouted: { _pageId: string }
@@ -158,26 +184,6 @@ async function renderPageClientSide(renderArgs: RenderArgs): Promise<void> {
     }
     // There wasn't any `await` but result may change because we just called setHydrationCanBeAborted()
     if (isRenderOutdated()) return
-
-    // onPageTransitionStart()
-    if (!isHydrationRender) {
-      assertHook(pageContext, 'onPageTransitionStart')
-      if (!globalObject.isTransitioning) {
-        globalObject.isTransitioning = true
-        const onPageTransitionStartHook = getHook(pageContext, 'onPageTransitionStart')
-        if (onPageTransitionStartHook) {
-          const hook = onPageTransitionStartHook
-          const { hookFn } = hook
-          try {
-            await executeHook(() => hookFn(pageContext), hook)
-          } catch (err) {
-            await onError(err)
-            return
-          }
-          if (isRenderOutdated()) return
-        }
-      }
-    }
 
     // Get pageContext from hooks (fetched from server, and/or directly called on the client-side)
     if (isHydrationRender) {
@@ -389,6 +395,7 @@ async function renderPageClientSide(renderArgs: RenderArgs): Promise<void> {
         onRenderClientError = err
       }
       globalObject.onRenderClientPromise = undefined
+      globalObject.isFirstRenderDone = true
       return onRenderClientError
     })()
     const onRenderClientError = await globalObject.onRenderClientPromise
@@ -425,8 +432,10 @@ async function renderPageClientSide(renderArgs: RenderArgs): Promise<void> {
     // onPageTransitionEnd()
     if (globalObject.isTransitioning) {
       globalObject.isTransitioning = undefined
-      assertHook(pageContext, 'onPageTransitionEnd')
-      const hook = getHook(pageContext, 'onPageTransitionEnd')
+      const { previousPageContext } = globalObject
+      assert(previousPageContext)
+      assertHook(previousPageContext, 'onPageTransitionEnd')
+      const hook = getHook(previousPageContext, 'onPageTransitionEnd')
       if (hook) {
         const { hookFn } = hook
         try {
