@@ -39,8 +39,7 @@ import type {
   DefinedAt,
   DefinedAtFileFullInfo,
   DefinedAtFile,
-  ConfigValuesComputed,
-  FilePathResolved
+  ConfigValuesComputed
 } from '../../../../../shared/page-configs/PageConfig.js'
 import type { Config } from '../../../../../shared/page-configs/Config.js'
 import {
@@ -60,7 +59,7 @@ import {
   isGlobalLocation,
   applyFilesystemRoutingRootEffect
 } from './getVikeConfig/filesystemRouting.js'
-import { isTmpFile } from './getVikeConfig/transpileAndExecuteFile.js'
+import { isTemporaryBuildFile } from './getVikeConfig/transpileAndExecuteFile.js'
 import { isConfigInvalid, isConfigInvalid_set } from '../../../../runtime/renderPage/isConfigInvalid.js'
 import { getViteDevServer } from '../../../../runtime/globalContext.js'
 import { logConfigError, logConfigErrorRecover } from '../../../shared/loggerNotProd.js'
@@ -82,7 +81,8 @@ import {
   loadValueFile
 } from './getVikeConfig/loadFileAtConfigTime.js'
 import { clearFilesEnvMap, resolveImport } from './getVikeConfig/resolveImportPath.js'
-import { resolveFilePathRelativeToUserRootDir } from './getVikeConfig/resolveFilePath.js'
+import { getFilePathResolved } from '../../../shared/getFilePath.js'
+import type { FilePathResolved } from '../../../../../shared/page-configs/FilePath.js'
 
 assertIsNotProductionRuntime()
 
@@ -157,7 +157,7 @@ async function handleReloadSideEffects() {
 async function getVikeConfig(
   config: ResolvedConfig,
   isDev: boolean,
-  tolerateInvalidConfig = false
+  tolerateInvalidConfig?: true
 ): Promise<VikeConfigObject> {
   const { outDirRoot } = getOutDirs(config)
   const userRootDir = config.root
@@ -195,11 +195,11 @@ async function loadInterfaceFiles(
   await Promise.all([
     // Config files
     ...configFiles.map(async (filePath) => {
-      const { filePathRelativeToUserRootDir } = filePath
-      assert(filePathRelativeToUserRootDir)
+      const { filePathAbsoluteUserRootDir } = filePath
+      assert(filePathAbsoluteUserRootDir)
       const { configFile, extendsConfigs } = await loadConfigFile(filePath, userRootDir, [], false)
-      assert(filePath.filePathRelativeToUserRootDir)
-      const locationId = getLocationId(filePathRelativeToUserRootDir)
+      assert(filePath.filePathAbsoluteUserRootDir)
+      const locationId = getLocationId(filePathAbsoluteUserRootDir)
       const interfaceFile = getInterfaceFileFromConfigFile(configFile, false, locationId)
 
       interfaceFilesByLocationId[locationId] = interfaceFilesByLocationId[locationId] ?? []
@@ -248,13 +248,13 @@ async function loadInterfaceFiles(
     }),
     // Value files
     ...valueFiles.map(async (filePath) => {
-      const { filePathRelativeToUserRootDir } = filePath
-      assert(filePathRelativeToUserRootDir)
+      const { filePathAbsoluteUserRootDir } = filePath
+      assert(filePathAbsoluteUserRootDir)
 
-      const configName = getConfigName(filePathRelativeToUserRootDir)
+      const configName = getConfigName(filePathAbsoluteUserRootDir)
       assert(configName)
 
-      const locationId = getLocationId(filePathRelativeToUserRootDir)
+      const locationId = getLocationId(filePathAbsoluteUserRootDir)
 
       const interfaceFile: InterfaceValueFile = {
         locationId,
@@ -324,7 +324,7 @@ async function loadVikeConfig_withErrorHandling(
   userRootDir: string,
   outDirRoot: string,
   isDev: boolean,
-  tolerateInvalidConfig: boolean
+  tolerateInvalidConfig?: boolean
 ): Promise<VikeConfigObject> {
   let hasError = false
   let ret: VikeConfigObject | undefined
@@ -509,9 +509,9 @@ async function getGlobalConfigs(
     const interfaceFilesGlobalPaths: string[] = []
     objectEntries(interfaceFilesGlobal).forEach(([locationId, interfaceFiles]) => {
       assert(isGlobalLocation(locationId, locationIds))
-      interfaceFiles.forEach(({ filePath: { filePathRelativeToUserRootDir } }) => {
-        if (filePathRelativeToUserRootDir) {
-          interfaceFilesGlobalPaths.push(filePathRelativeToUserRootDir)
+      interfaceFiles.forEach(({ filePath: { filePathAbsoluteUserRootDir } }) => {
+        if (filePathAbsoluteUserRootDir) {
+          interfaceFilesGlobalPaths.push(filePathAbsoluteUserRootDir)
         }
       })
     })
@@ -667,10 +667,10 @@ async function resolveConfigValueSources(
 }
 function makeOrderDeterministic(interfaceFile1: InterfaceFile, interfaceFile2: InterfaceFile): 0 | -1 | 1 {
   return lowerFirst<InterfaceFile>((interfaceFile) => {
-    const { filePathRelativeToUserRootDir } = interfaceFile.filePath
+    const { filePathAbsoluteUserRootDir } = interfaceFile.filePath
     assert(isInterfaceFileUserLand(interfaceFile))
-    assert(filePathRelativeToUserRootDir)
-    return filePathRelativeToUserRootDir.length
+    assert(filePathAbsoluteUserRootDir)
+    return filePathAbsoluteUserRootDir.length
   })(interfaceFile1, interfaceFile2)
 }
 function warnOverridenConfigValues(
@@ -765,6 +765,7 @@ async function getConfigValueSource(
       ) {
         if (import_.filePathAbsoluteFilesystem) {
           assert(hasProp(import_, 'filePathAbsoluteFilesystem', 'string')) // Help TS
+          assert(hasProp(import_, 'filePathToShowToUserResolved', 'string')) // Help TS
           const fileExport = await loadImportedFile(import_, userRootDir, importedFilesLoaded)
           configValueSource.value = fileExport
         } else {
@@ -1006,8 +1007,8 @@ function getComputed(configValueSources: ConfigValueSources, configDefinitions: 
 async function findPlusFiles(userRootDir: string, outDirRoot: string, isDev: boolean): Promise<FilePathResolved[]> {
   const files = await crawlPlusFiles(userRootDir, outDirRoot, isDev)
 
-  const plusFiles: FilePathResolved[] = files.map(({ filePathRelativeToUserRootDir }) =>
-    resolveFilePathRelativeToUserRootDir(filePathRelativeToUserRootDir, userRootDir)
+  const plusFiles: FilePathResolved[] = files.map(({ filePathAbsoluteUserRootDir }) =>
+    getFilePathResolved({ filePathAbsoluteUserRootDir, userRootDir })
   )
 
   return plusFiles
@@ -1015,7 +1016,7 @@ async function findPlusFiles(userRootDir: string, outDirRoot: string, isDev: boo
 
 function getConfigName(filePath: string): string | null {
   assertPosixPath(filePath)
-  if (isTmpFile(filePath)) return null
+  if (isTemporaryBuildFile(filePath)) return null
   const fileName = path.posix.basename(filePath)
   // assertNoUnexpectedPlusSign(filePath, fileName)
   const basename = fileName.split('.')[0]!
@@ -1045,26 +1046,48 @@ function assertNoUnexpectedPlusSign(filePath: string, fileName: string) {
 */
 
 function handleUnknownConfig(configName: string, configNames: string[], filePathToShowToUser: string) {
-  let errMsg = `${filePathToShowToUser} defines an unknown config ${pc.cyan(configName)}`
+  {
+    const ui = ['vike-react', 'vike-vue', 'vike-solid'] as const
+    const knownVikeExntensionConfigs = {
+      description: ui,
+      favicon: ui,
+      Head: ui,
+      Layout: ui,
+      onCreateApp: ['vike-vue'],
+      title: ui,
+      ssr: ui,
+      stream: ui,
+      Wrapper: ui
+    } as const
+    if (configName in knownVikeExntensionConfigs) {
+      const requiredVikeExtension = knownVikeExntensionConfigs[configName as keyof typeof knownVikeExntensionConfigs]
+      assertUsage(
+        false,
+        [
+          `${filePathToShowToUser} uses the config ${pc.cyan(configName)} (https://vike.dev/${configName})`,
+          `which requires the Vike extension ${requiredVikeExtension.map((e) => pc.bold(e)).join('/')}.`,
+          `Make sure to install the Vike extension,`,
+          `and make sure it applies to ${filePathToShowToUser} as explained at https://vike.dev/extends#inheritance.`
+        ].join(' ')
+      )
+    }
+  }
+
+  let errMsg = `${filePathToShowToUser} sets an unknown config ${pc.cyan(configName)}`
   let configNameSimilar: string | null = null
   if (configName === 'page') {
     configNameSimilar = 'Page'
   } else {
     configNameSimilar = getMostSimilar(configName, configNames)
   }
-  if (configNameSimilar || configName === 'page') {
-    assert(configNameSimilar)
+  if (configNameSimilar) {
     assert(configNameSimilar !== configName)
-    errMsg += `, did you mean to define ${pc.cyan(configNameSimilar)} instead?`
+    errMsg += `, did you mean to set ${pc.cyan(configNameSimilar)} instead?`
     if (configName === 'page') {
       errMsg += ` (The name of the config ${pc.cyan('Page')} starts with a capital letter ${pc.cyan(
         'P'
       )} because it usually defines a UI component: a ubiquitous JavaScript convention is to start the name of UI components with a capital letter.)`
     }
-  } else {
-    errMsg += `, you need to define the config ${pc.cyan(configName)} by using ${pc.cyan(
-      'config.meta'
-    )} https://vike.dev/meta`
   }
   assertUsage(false, errMsg)
 }
@@ -1108,9 +1131,9 @@ function getFilesystemRoutingRootEffect(
     value.startsWith('/'),
     `${configDefinedAt} is ${pc.cyan(value)} but it should start with a leading slash ${pc.cyan('/')}`
   )
-  const { filePathRelativeToUserRootDir } = configFilesystemRoutingRoot.definedAt
-  assert(filePathRelativeToUserRootDir)
-  const before = getFilesystemRouteString(getLocationId(filePathRelativeToUserRootDir))
+  const { filePathAbsoluteUserRootDir } = configFilesystemRoutingRoot.definedAt
+  assert(filePathAbsoluteUserRootDir)
+  const before = getFilesystemRouteString(getLocationId(filePathAbsoluteUserRootDir))
   const after = value
   const filesystemRoutingRootEffect = { before, after }
   return { filesystemRoutingRootEffect, filesystemRoutingRootDefinedAt: configDefinedAt }
@@ -1312,7 +1335,13 @@ function sortConfigValueSources(
       .sort(
         makeFirst(([, [source]]) => {
           const { importPathAbsolute } = source!.definedAt
-          return !!importPathAbsolute && isNpmPackageImport(importPathAbsolute)
+          return (
+            !!importPathAbsolute &&
+            isNpmPackageImport(importPathAbsolute, {
+              // Vike config files don't support path aliases. (If they do one day, then Vike will/should be able to resolve path aliases.)
+              cannotBePathAlias: true
+            })
+          )
         })
       )
       // Sort after the filesystem inheritance of the config value

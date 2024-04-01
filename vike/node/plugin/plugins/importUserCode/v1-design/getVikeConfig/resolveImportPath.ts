@@ -4,15 +4,12 @@ export { assertImportPath }
 export { clearFilesEnvMap }
 
 import pc from '@brillout/picocolors'
-import type {
-  ConfigEnvInternal,
-  DefinedAtFileFullInfo,
-  FilePath,
-  FilePathResolved
-} from '../../../../../../shared/page-configs/PageConfig.js'
+import type { ConfigEnvInternal, DefinedAtFileFullInfo } from '../../../../../../shared/page-configs/PageConfig.js'
 import { assert, assertPosixPath, assertUsage, deepEqual, requireResolve } from '../../../../utils.js'
 import { type ImportData, parseImportData } from './transformFileImports.js'
 import path from 'path'
+import { getFilePathResolved, getFilePathUnresolved } from '../../../../shared/getFilePath.js'
+import type { FilePath, FilePathResolved } from '../../../../../../shared/page-configs/FilePath.js'
 
 const filesEnvMap: Map<string, { configEnv: ConfigEnvInternal; configName: string }[]> = new Map()
 
@@ -34,59 +31,54 @@ function resolveImport(
 
   const fileExportPathToShowToUser = exportName === 'default' || exportName === configName ? [] : [exportName]
 
+  let filePath: FilePath
   if (importPath.startsWith('.')) {
     // We need to resolve relative paths into absolute paths. Because the import paths are included in virtual files:
     // ```
     // [vite] Internal server error: Failed to resolve import "./onPageTransitionHooks" from "virtual:vike:pageConfigValuesAll:client:/pages/index". Does the file exist?
     // ```
     assertImportPath(filePathAbsoluteFilesystem, importData, importerFilePath)
-    const filePathRelativeToUserRootDir = resolveImportPath_relativeToUserRootDir(
+    const filePathAbsoluteUserRootDir = resolveImportPath_absoluteUserRootDir(
       filePathAbsoluteFilesystem,
       importData,
       importerFilePath,
       userRootDir
     )
-    const filePath: FilePath = {
-      filePathAbsoluteFilesystem,
-      filePathRelativeToUserRootDir,
-      filePathAbsoluteVite: filePathRelativeToUserRootDir,
-      filePathToShowToUser: filePathRelativeToUserRootDir,
-      importPathAbsolute: null
-    }
-    return {
-      ...filePath,
-      fileExportName: exportName,
-      fileExportPathToShowToUser
-    }
+    filePath = getFilePathResolved({ filePathAbsoluteUserRootDir, userRootDir })
   } else {
     // importPath can be:
     //  - an npm package import
     //  - a path alias
-    const filePath: FilePath = {
-      filePathAbsoluteFilesystem,
-      filePathRelativeToUserRootDir: null,
-      filePathAbsoluteVite: importPath,
-      filePathToShowToUser: importPath,
-      importPathAbsolute: importPath
+    if (filePathAbsoluteFilesystem) {
+      filePath = getFilePathResolved({
+        userRootDir,
+        filePathAbsoluteFilesystem,
+        importPathAbsolute: importPath
+      })
+    } else {
+      filePath = getFilePathUnresolved({
+        importPathAbsolute: importPath
+      })
     }
-    return {
-      ...filePath,
-      fileExportName: exportName,
-      fileExportPathToShowToUser
-    }
+  }
+
+  return {
+    ...filePath,
+    fileExportName: exportName,
+    fileExportPathToShowToUser
   }
 }
 
-function resolveImportPath_relativeToUserRootDir(
+function resolveImportPath_absoluteUserRootDir(
   filePathAbsoluteFilesystem: string,
   importData: ImportData,
   configFilePath: FilePathResolved,
   userRootDir: string
 ) {
   assertPosixPath(userRootDir)
-  let filePathRelativeToUserRootDir: string
+  let filePathAbsoluteUserRootDir: string
   if (filePathAbsoluteFilesystem.startsWith(userRootDir)) {
-    filePathRelativeToUserRootDir = getVitePathFromAbsolutePath(filePathAbsoluteFilesystem, userRootDir)
+    filePathAbsoluteUserRootDir = getVitePathFromAbsolutePath(filePathAbsoluteFilesystem, userRootDir)
   } else {
     assertUsage(
       false,
@@ -99,22 +91,23 @@ function resolveImportPath_relativeToUserRootDir(
     // assert(filePathAbsoluteFilesystem.startsWith('/'))
     // filePath = `/@fs${filePathAbsoluteFilesystem}`
     // /*/
-    // filePathRelativeToUserRootDir = path.posix.relative(userRootDir, filePathAbsoluteFilesystem)
-    // assert(filePathRelativeToUserRootDir.startsWith('../'))
-    // filePathRelativeToUserRootDir = '/' + filePathRelativeToUserRootDir
+    // filePathAbsoluteUserRootDir = path.posix.relative(userRootDir, filePathAbsoluteFilesystem)
+    // assert(filePathAbsoluteUserRootDir.startsWith('../'))
+    // filePathAbsoluteUserRootDir = '/' + filePathAbsoluteUserRootDir
     // //*/
   }
 
-  assertPosixPath(filePathRelativeToUserRootDir)
-  assert(filePathRelativeToUserRootDir.startsWith('/'))
-  return filePathRelativeToUserRootDir
+  assertPosixPath(filePathAbsoluteUserRootDir)
+  assert(filePathAbsoluteUserRootDir.startsWith('/'))
+  return filePathAbsoluteUserRootDir
 }
 
 function resolveImportPath(importData: ImportData, importerFilePath: FilePathResolved): string | null {
   const importerFilePathAbsolute = importerFilePath.filePathAbsoluteFilesystem
   assertPosixPath(importerFilePathAbsolute)
   const cwd = path.posix.dirname(importerFilePathAbsolute)
-  // We can't use import.meta.resolve() as of Junary 2023 (and probably for a lot longer): https://stackoverflow.com/questions/54977743/do-require-resolve-for-es-modules#comment137174954_62272600:~:text=But%20the%20argument%20parent%20(aka%20cwd)%20still%20requires%20a%20flag
+  // We can't use import.meta.resolve() as of Junary 2023 (and probably for a lot longer)
+  // https://stackoverflow.com/questions/54977743/do-require-resolve-for-es-modules#comment137174954_62272600:~:text=But%20the%20argument%20parent%20(aka%20cwd)%20still%20requires%20a%20flag
   // filePathAbsoluteFilesystem is expected to be null when importData.importPath is a Vite path alias
   const filePathAbsoluteFilesystem = requireResolve(importData.importPath, cwd)
   return filePathAbsoluteFilesystem

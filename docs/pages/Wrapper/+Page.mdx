@@ -1,14 +1,14 @@
 import { Link } from '@brillout/docpress'
-import { UiFrameworkVikeExtension } from '../../components'
+import { UiFrameworkVikeExtension, ImplementedBy } from '../../components'
 
-Provided by: <UiFrameworkVikeExtension /> (or <Link href="#without-vike-extension">yourself</Link>).
+<ImplementedBy>`Wrapper` setting</ImplementedBy>
 
 The `Wrapper` setting wraps your <Link href="/Page">Page component</Link> with another component.
 
 ```jsx
-<Wrapper>     <- component defined by the setting "Wrapper"
-  <Layout>    <- component defined by the setting "Layout"
-    <Page />  <- component defined by the setting "Page"
+<Wrapper>     ⟸ component defined by the setting "Wrapper"
+  <Layout>    ⟸ component defined by the setting "Layout"
+    <Page />  ⟸ component defined by the setting "Page"
   </Layout>
 </Wrapper>
 ```

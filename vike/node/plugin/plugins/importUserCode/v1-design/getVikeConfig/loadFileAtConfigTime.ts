@@ -6,16 +6,8 @@ export { loadConfigFile }
 export type { ImportedFilesLoaded }
 export type { ConfigFile }
 
-import {
-  assertPosixPath,
-  assert,
-  assertUsage,
-  assertWarning,
-  hasProp,
-  assertIsNotProductionRuntime,
-  isNpmPackageImport
-} from '../../../../utils.js'
-import type { FilePathResolved } from '../../../../../../shared/page-configs/PageConfig.js'
+import { assert, assertUsage, hasProp, assertIsNotProductionRuntime } from '../../../../utils.js'
+import type { FilePathResolved } from '../../../../../../shared/page-configs/FilePath.js'
 import { transpileAndExecuteFile } from './transpileAndExecuteFile.js'
 import type { InterfaceValueFile } from '../getVikeConfig.js'
 import { assertPlusFileExport } from '../../../../../../shared/page-configs/assertPlusFileExport.js'
@@ -23,6 +15,7 @@ import pc from '@brillout/picocolors'
 import { type ImportData, parseImportData } from './transformFileImports.js'
 import { getConfigFileExport } from '../getConfigFileExport.js'
 import { assertImportPath, resolveImportPath } from './resolveImportPath.js'
+import { getFilePathResolved } from '../../../../shared/getFilePath.js'
 
 assertIsNotProductionRuntime()
 
@@ -101,21 +94,11 @@ async function loadExtendsConfigs(
   const extendsImportData = getExtendsImportData(configFileExports, configFilePath)
   const extendsConfigFiles: FilePathResolved[] = []
   extendsImportData.map((importData) => {
-    const { importPath: importPath } = importData
+    const { importPath: importPathAbsolute } = importData
     const filePathAbsoluteFilesystem = resolveImportPath(importData, configFilePath)
     assertImportPath(filePathAbsoluteFilesystem, importData, configFilePath)
-    warnUserLandExtension(importPath, configFilePath)
-    // - filePathRelativeToUserRootDir has no functionality beyond nicer error messages for user
-    // - Using importPath would be visually nicer but it's ambigous => we rather pick filePathAbsoluteFilesystem for added clarity
-    const filePathRelativeToUserRootDir = determineFilePathRelativeToUserDir(filePathAbsoluteFilesystem, userRootDir)
-    const filePathAbsoluteVite = filePathRelativeToUserRootDir ?? importPath
-    extendsConfigFiles.push({
-      filePathAbsoluteFilesystem,
-      filePathAbsoluteVite,
-      filePathRelativeToUserRootDir,
-      filePathToShowToUser: filePathAbsoluteVite,
-      importPathAbsolute: importPath
-    })
+    const filePath = getFilePathResolved({ filePathAbsoluteFilesystem, userRootDir, importPathAbsolute })
+    extendsConfigFiles.push(filePath)
   })
 
   const extendsConfigs: ConfigFile[] = []
@@ -130,26 +113,6 @@ async function loadExtendsConfigs(
   const extendsFilePaths = extendsConfigFiles.map((f) => f.filePathAbsoluteFilesystem)
 
   return { extendsConfigs, extendsFilePaths }
-}
-function determineFilePathRelativeToUserDir(filePathAbsoluteFilesystem: string, userRootDir: string): null | string {
-  assertPosixPath(filePathAbsoluteFilesystem)
-  assertPosixPath(userRootDir)
-  if (!filePathAbsoluteFilesystem.startsWith(userRootDir)) {
-    return null
-  }
-  let filePathRelativeToUserRootDir = filePathAbsoluteFilesystem.slice(userRootDir.length)
-  if (!filePathRelativeToUserRootDir.startsWith('/'))
-    filePathRelativeToUserRootDir = '/' + filePathRelativeToUserRootDir
-  return filePathRelativeToUserRootDir
-}
-function warnUserLandExtension(importPath: string, configFilePath: FilePathResolved) {
-  assertWarning(
-    isNpmPackageImport(importPath),
-    `${configFilePath.filePathToShowToUser} uses ${pc.cyan('extends')} to inherit from ${pc.cyan(
-      importPath
-    )} which is a user-land file: this is experimental and may be remove at any time. Reach out to a maintainer if you need this.`,
-    { onlyOnce: true }
-  )
 }
 function getExtendsImportData(
   configFileExports: Record<string, unknown>,

@@ -6,6 +6,7 @@ export { isKnownError }
 export { getHint }
 
 import { assert, formatHintLog, isNotNullish, isObject, unique } from '../utils.js'
+import pc from '@brillout/picocolors'
 
 const knownErrors = [
   {
@@ -23,6 +24,10 @@ const knownErrors = [
     // ```
     errMsg: 'assets.json',
     link: 'https://vike.dev/getGlobalContext'
+  },
+  {
+    errMsg: /Named export.*not found/i,
+    link: 'https://vike.dev/broken-npm-package#named-export-not-found'
   }
 ]
 
@@ -49,6 +54,7 @@ function getHint(error: unknown): null | string {
 }
 function logHint(hint: string) {
   hint = formatHintLog(hint)
+  hint = pc.bold(hint)
   console.error(hint)
 }
 
@@ -285,8 +291,15 @@ function extractFromNodeModulesPath(str: string) {
   return packageName
 }
 
-function includes(str1: string | null, str2: string): boolean {
-  return !!str1 && str1.toLowerCase().includes(str2.toLowerCase())
+function includes(str1: string | null, str2: string | RegExp): boolean {
+  if (!str1) return false
+  if (str2 instanceof RegExp) {
+    return str2.test(str1.toLowerCase())
+  }
+  if (typeof str2 === 'string') {
+    return str1.toLowerCase().includes(str2.toLowerCase())
+  }
+  return false
 }
 function includesNodeModules(str: string | null): boolean {
   if (!str) return false
