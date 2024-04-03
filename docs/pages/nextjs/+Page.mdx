@@ -67,7 +67,7 @@ Vikeでは、アーキテクチャの最も重要な側面の1つであるサー
 | Caching (see own section above)                                                               | No*, if needed, use industry-standard caching**.                                           | App Router [caching](https://nextjs.org/docs/app/building-your-application/caching), [opt-out](https://www.reddit.com/r/nextjs/comments/15wc4nt/nextjs_caching_opt_out/)   |
 
 (\*) Vikeはデザイン上、そのような余分なものは行いません。
-(\**) Industry-standard ways of caching is to use the HTTP Cache-Control header to [cache in the client's browser](https://web.dev/articles/http-cache) and potentially also on a shared/public [CDN](https://www.cloudflare.com/lp/ppc/cdn-x/) cache in front of your server side. Additionally, if you ever need even more caching than that, it's possible to have an in-memory cache on your server-side using e.g. [Redis](https://developer.redis.com/howtos/solutions/microservices/caching/) or Memcached.
+(\**) キャッシングの業界標準的な方法としては、HTTP Cache-Control ヘッダーを使用して[クライアントのブラウザでキャッシュする](https://web.dev/articles/http-cache)ことがあり、さらにはサーバーサイドの前に配置された共有/公開の [CDN](https://www.cloudflare.com/lp/ppc/cdn-x/) キャッシュでも可能です。さらに、それ以上のキャッシングが必要な場合は、例えば [Redis](https://developer.redis.com/howtos/solutions/microservices/caching/) や Memcached を使用して、サーバーサイドにインメモリキャッシュを持つことも可能です。
 
 
 
@@ -89,10 +89,10 @@ Vikeでは、アーキテクチャの最も重要な側面の1つであるサー
 
 > Vike is completely agnostic to React and its source code has zero dependency on React. You can actually use Vike with any other UI Framework (Vue, Preact, Solid, etc.).
 >
-> With Vike, you implement and fully control the React integration, which has many benefits. For example, you can use Relay in the same way that Facebook does (with a render-as-you-fetch stream) which isn't possible with Next.js.                                              
+> With Vike, you implement and fully control the React integration, which has many benefits. For example, you can use Relay in the same way that Facebook does (with a render-as-you-fetch stream) which isn't possible with Next.js.
 
 Vikeでは、Reactを自分で統合します。つまり、もう少し定型文を書く必要がありますが、その代わりに柔軟性が増します。
-You can even use [vike-react](https://vike.dev/react) to do it for you, and later when you need more control you can eject.                     
+You can even use [vike-react](https://vike.dev/react) to do it for you, and later when you need more control you can eject.
 Reactを自分で統合するため、お気に入りのツールを用いたフロントエンドの統合（データ取得、状態管理、認証など）を完全に制御できます。
 
 たとえば、Next.jsでは不可能な方法でRelayやApolloを使用できます。
@@ -100,118 +100,110 @@ Reactを自分で統合するため、お気に入りのツールを用いたフ
 > Relayは、（GraphQLを発明した）Facebookによって開発され、大規模に使用されている最先端のGraphQLクライアントである。YouTubeのビデオ 「[Re-introducing Relay](https://www.youtube.com/watch?v=lhVGdErZuN4) 」では、Relayの利点について詳しく説明しています。
 > 多くのユーザーやスポンサーが、RelayとSSR Streamingを統合するVikeの柔軟性を活用しています。
 
-Vikeにはクライアントサイドルーティング、HMR、ファイルシステムルーティング、プリレンダリング、データフェッチ、コード分割、レイアウト、i18nなどのフロントエンドフレームワークに期待されるものが全て含まれています。               
+Vikeにはクライアントサイドルーティング、HMR、ファイルシステムルーティング、プリレンダリング、データフェッチ、コード分割、レイアウト、i18nなどのフロントエンドフレームワークに期待されるものが全て含まれています。
 
 
-## Deployment/hosting agnostic
+## デプロイメント/ホスティング非依存
 
 ### Next.js
 
-Next.js is made by [Vercel](https://vercel.com), a hosting provider. It is therefore naturally optimised to run in their environment and infrastructure. But Vercel
-is
-[known](https://eightify.app/summary/web-development/the-shift-from-vercel-to-aws-amplify-cost-and-scaling-benefits)
-to
-[become](https://www.reddit.com/r/nextjs/comments/12t5nhi/needed_alternatives_for_vercel/)
-very
-[expensive](https://x.com/zackerydev/status/1717556827569660378)
-at
-[scale](https://www.reddit.com/r/nextjs/comments/q7vw6p/cheaper_vercel_alternatives_specifically_to/hgm7d1t/).
-What's worse is that [Vercel's pricing](https://vercel.com/pricing) is
-misleading (the pay-per-developer make it seem cheap but you usually pay for very expensive fees for exceeding limits),
-[opaque](https://www.reddit.com/r/nextjs/search?q=vercel+pricing&restrict_sr=on&include_over_18=on) (e.g. you must have an enterprise plan if you have >10 team members which is [hidden in the fine print](https://vercel.com/docs/limits/overview#:~:text=Team%20Members%20per,Custom)),
-locks you in with [extremely expensive egress fees](https://gist.github.com/brillout/190bc676879a2a615d0bae031969f0a5),
-hard to understand and nearly impossible to predict.
-Such pricing is a no-go for large enterprises.
+Next.js は、ホスティングプロバイダーである [Vercel](https://vercel.com) によって開発されました。したがって、自然に彼らの環境とインフラで実行されるように最適化されています。しかし、Vercel は
+[スケールすると非常に](https://www.reddit.com/r/nextjs/comments/q7vw6p/cheaper_vercel_alternatives_specifically_to/hgm7d1t/)
+[高価になる](https://x.com/zackerydev/status/1717556827569660378)
+ことで[知られています](https://eightify.app/summary/web-development/the-shift-from-vercel-to-aws-amplify-cost-and-scaling-benefits)。
+さらに悪いことに、[Vercel の価格設定](https://vercel.com/pricing)は誤解を招くものであり（開発者ごとの支払いは安く見えますが、制限を超えると非常に高価な料金を支払うことが多い）、
+[不透明](https://www.reddit.com/r/nextjs/search?q=vercel+pricing&restrict_sr=on&include_over_18=on)（例えば、10人以上のチームメンバーがいる場合はエンタープライズプランが必要で、これは[細かい文字に隠されています](https://vercel.com/docs/limits/overview#:~:text=Team%20Members%20per,Custom)）、
+[非常に高価なイーグレス料金](https://gist.github.com/brillout/190bc676879a2a615d0bae031969f0a5)によってロックインされ、
+理解が難しく、ほぼ予測不可能です。
+このような価格設定は、大企業にとって論外です。
 
-You can self-host Next.js as a Node.js server, for example placed in a Docker container. But it won't work precisely the same way as on Vercel.
-Furthermore, self-hosting Next.js as a Serverless or Edge application (i.e. replacing Vercel) is worse.
+Next.js は Node.js サーバーとして自己ホスティングすることができますが、例えば Docker コンテナ内に配置することができます。しかし、Vercel 上での動作と全く同じではありません。
+さらに、Next.js をサーバーレスまたはエッジアプリケーションとして自己ホスティングする（つまり、Vercel を置き換える）ことは、さらに悪化します。
 
-An illustration of the problem: with Next.js server actions you no longer handwrite API endpoints - which means [you don't have the ability to explicitly control versioning](https://twitter.com/thdxr/status/1718308244383228124). So requests from old clients can fail. Vercel solved this with their deployment infrastructure, instead of in Next.js itself. So if you use Next.js but not Vercel then you'll have to deal with this major problem yourself.
+問題の一例として、Next.js のサーバーアクションでは API エンドポイントを手書きすることがなくなります。これは[バージョニングを明示的に制御する能力がない](https://twitter.com/thdxr/status/1718308244383228124)ことを意味します。そのため、古いクライアントからのリクエストが失敗する可能性があります。Vercel は、Next.js 自体ではなく、彼らのデプロイメントインフラストラクチャでこれを解決しました。したがって、Next.js を使用しているが Vercel を使用していない場合、この大きな問題に自分自身で対処する必要があります。
 
-These kinds of difficulties led the open source community to develop [Open-Next.js](https://open-next.js.org/), a project to make Serverless deployment of Next.js on generic Functions-as-a-Service (FaaS) platforms easier (specifically on AWS Lambda). It allows easier integration with AWS and reduces Next.js's ties to Vercel. But that is a moving target with things breaking frequently, [according to a person](https://x.com/thdxr/status/1740115107005280592) working closely with the matter.
-
-Edge deployment with Next.js is another story. [Cloudflare](https://blog.cloudflare.com/next-on-pages), the most prominent edge hosting provider, uses its own runtime instead of Node.js. Meaning that some Next.js apps built to run on Node.js won't immediately work on the Edge. So Next.js has an Edge Runtime toolkit/mode that uses only a subset of the Node.js API, but it has [a lot of issues](https://github.com/search?q=repo%3Avercel%2Fnext.js+edge+runtime&type=issues).
+このような困難により、オープンソースコミュニティは [Open-Next.js](https://open-next.js.org/) の開発を行いました。これは、Next.js を一般的な Functions-as-a-Service (FaaS) プラットフォーム（特に AWS Lambda）上でのサーバーレスデプロイメントを容易にするプロジェクトです。これにより AWS との統合が容易になり、Next.js と Vercel の結びつきを減らします。しかし、これは頻
 
 
 ### Vike
 
-> With Vike, you keep full control over your server and you can use any deployment strategy.
+> Vike を使用すると、サーバーを完全に制御でき、任意のデプロイ戦略を使用できます。
 
-Vike is server and deployment agnostic, which means you can use any hosting provider and any server/serverless setup of choice. Vike is built with Serverless and Edge compatibility from the start.
+Vike はサーバーとデプロイメントに依存しないため、任意のホスティングプロバイダーや好みのサーバー/サーバーレス設定を使用できます。Vike は、最初からサーバーレスおよびエッジ互換性を考慮して構築されています。
 
-From a server perspective, <Link text="Vike is just a middleware" href="/deploy" /> that doesn't depend on Node.js and that can run anywhere where JavaScript runs such as AWS, Vercel, Cloudflare, Deno Deploy, or even in the browser.
+サーバーの観点からは、<Link text="Vike は単なるミドルウェア" href="/deploy" />であり、Node.js に依存せず、JavaScript が動作する AWS、Vercel、Cloudflare、Deno Deploy、あるいはブラウザ内など、どこでも実行できます。
 
-You can develop apps with a server that doesn't depend on Node.js and deploy it anywhere.
+Node.js に依存しないサーバーでアプリを開発し、どこにでもデプロイできます。
 
-> You can also <Link href="/pre-rendering">pre-render</Link> your app to remove the need for a production server: your app consists only of static assets (HTML, JS, CSS, images, ...) that can be deployed to any static host such as GitHub Pages.
+> また、<Link href="/pre-rendering">アプリを事前にレンダリング</Link>して、本番サーバーの必要性をなくすことができます：あなたのアプリは静的アセット（HTML、JS、CSS、画像など）のみから構成され、GitHub Pages などの任意の静的ホストにデプロイできます。
 
-> You do need Node.js for local development, as the development runtime of [Vite (the dev- and build-toolkit used by Vike)](https://vitejs.dev/) depends on Node.js. But Vite's runtime isn't needed in production. Consequently, since Vike's runtime doesn't depend on Node.js, there are no dependencies on Node.js in production.
+> ローカル開発のためには Node.js が必要ですが、[Vite（Vike によって使用される開発・ビルドツールキット）](https://vitejs.dev/) の開発ランタイムは Node.js に依存しています。しかし、Vite のランタイムは本番環境では必要ありません。したがって、Vike のランタイムが Node.js に依存していないため、本番環境で Node.js に依存することはありません。
 
-To integrate Vike, you simply add Vike's middleware to your server (Express.js, Fastify, Edge Worker, Serverless Function, etc.).
+Vike を統合するには、サーバー（Express.js、Fastify、Edge Worker、Serverless Function など）に Vike のミドルウェアを追加するだけです。
 
-With Vike, you have full control over your server and over your deployment strategy, two critical aspects of your business.
-
-
-
-## Minimal and self-contained (no deps)
-
-[All dependencies](https://github.com/vikejs/vike/blob/3d042da/vike/package.json#L15-L26) are either shared with Vite (e.g. [`fast-glob`](https://github.com/mrmlnc/fast-glob)) or fully owned (e.g. we own [`@brillout/json-serializer`](https://github.com/brillout/json-serializer)). Adding Vike to your Vite app doesn't add any frivolous dependency.
-
-We believe Vike hits the sweet spot of being a full-fledged frontend tool while avoiding unnecessary bells and whistles.
+Vike を使えば、ビジネスにとって重要な二つの側面であるサーバーとデプロイ戦略を完全に制御できます。
 
 
 
-## Caching by default vs. opt-in
+## 最小限で自己完結（依存なし）
+
+[Vike のすべての依存関係](https://github.com/vikejs/vike/blob/3d042da/vike/package.json#L15-L26)は、Vite と共有されているもの（例えば [`fast-glob`](https://github.com/mrmlnc/fast-glob)）か、完全に所有されているもの（例えば、私たちは [`@brillout/json-serializer`](https://github.com/brillout/json-serializer) を所有しています）。Vike をあなたの Vite アプリに追加しても、不要な依存関係は追加されません。
+
+私たちは、Vike が完全なフロントエンドツールでありながら、不必要な飾りや機能を避ける最適な点を打っていると信じています。
+
+
+
+## デフォルトでのキャッシング vs. オプトイン
 
 ### Next.js
 
-Next.js aggressively uses [caching](https://nextjs.org/docs/app/building-your-application/caching), for performance and cost-saving reasons. Less server load means your app uses less compute resources, which saves you money on Vercel's paid plans, but saves Vercel money on their free tier (which most developers will be on; Vercel's long-tail).
+Next.js は、パフォーマンスとコスト削減のために、[キャッシング](https://nextjs.org/docs/app/building-your-application/caching)を積極的に使用しています。サーバー負荷が少ないということは、アプリが使用するコンピュートリソースが少なくなり、Vercel の有料プランでお金を節約できるということですが、Vercel にとっては無料プラン（ほとんどの開発者が使用しているであろう Vercel のロングテール）での節約にもなります。
 
-Next.js leans towards making as many routes as possible statically rendered (SSG over SSR wherever possible). Caching is enabled by default (both on the server and the client), and you have to **explicitly opt-out** to disable it (using more or less hacky solutions) each time you don't want it.
+Next.js は、できるだけ多くのルートを静的にレンダリングする（可能な限り SSR より SSG）方向に傾いています。キャッシングはデフォルトで有効になっており（サーバーとクライアントの両方で）、それを無効にしたい場合は **明示的にオプトアウト** する必要があります（よりハッキーな解決策を使用して）。
 
-But people are [finding](https://www.reddit.com/r/nextjs/comments/18tkmdb/has_anyone_abandoned_nextjs_after_using_it_on_a/kffjox2/) the aggressive [caching to be a nightmare](https://www.reddit.com/r/nextjs/comments/18tkmdb/has_anyone_abandoned_nextjs_after_using_it_on_a/kfh6nh2/), and hard to disable. Caching can give a wrong/stale view of your app, and cost precious development time hunting for the cause.
+しかし、人々は積極的な[キャッシングが悪夢である](https://www.reddit.com/r/nextjs/comments/18tkmdb/has_anyone_abandoned_nextjs_after_using_it_on_a/kfh6nh2/)と[見つけて](https://www.reddit.com/r/nextjs/comments/18tkmdb/has_anyone_abandoned_nextjs_after_using_it_on_a/kffjox2/)、無効にするのが難しいと感じています。キャッシングは、アプリの間違った/古いビューを提供し、原因を探すために貴重な開発時間を費やすことになります。
 
-As the saying goes, _"There are only two hard things in Computer Science: cache invalidation and naming things."_ -- Phil Karlton
+ことわざにもあるように、 _「コンピュータサイエンスで難しいことは2つだけ：キャッシュの無効化と名前付け。」_ -- Phil Karlton
 
 ### Vike
 
-Vike does not cache, by design, so by default your app will behave as you expect. If you do want caching, you can opt into it by using one of the many industry-standard caching tools.
+Vike は、デザインによりキャッシュを使用しないため、デフォルトではアプリが期待通りに動作します。キャッシングを使用したい場合は、多くの業界標準のキャッシングツールのいずれかを使用して、それにオプトインできます。
 
 
 
-## Server-first vs. granular work-split
+## サーバーファースト vs. 詳細な作業分割
 
 
-### Next.js - server-first oriented
+### Next.js - サーバーファースト指向
 
-Next.js - made by Vercel, a hosting provider - is server-focused. It now defaults to interpreting all React components in the React render tree as React Server Components (RSC), and if you don't want that, you have to opt-out. 
+Next.js は Vercel（ホスティングプロバイダー）によって開発され、サーバーに焦点を当てています。現在では、React レンダリングツリー内の全ての React コンポーネントを React サーバーコンポーネント（RSC）として解釈することがデフォルトになっており、これを望まない場合はオプトアウトする必要があります。
 
-With RSCs, you have to inject the bundler directive "use client" (aka. start client bundling) into your React component tree at the start of every branch with components that you want to turn into Client Components.
+RSC を使用する場合、クライアントコンポーネントに変換したい各ブランチの開始時に React コンポーネントツリーにバンドラディレクティブ "use client"（クライアントバンドリングの開始）を挿入する必要があります。
 
-The default server orientation makes sense for _websites_ that consist of large static sections with no client interactivity. Using RSCs reduce the size of client-side bundles (and hydration), due to the JS code in RSC's only running on the server (e.g. useful for a static site using a heavy markdown library). But RSC's carry serialization and parsing overhead, has special rules (no state, context, or effects), and conceptual overhead that many developers struggle with.
+サーバー指向のデフォルト設定は、クライアントの対話性がない大きな静的セクションから成る _ウェブサイト_ には理にかなっています。RSC を使用すると、RSC の JS コードがサーバー上でのみ実行されるため（例えば、重いマークダウンライブラリを使用する静的サイトに役立つ）、クライアントサイドバンドルのサイズ（およびハイドレーション）が削減されます。しかし、RSC にはシリアライゼーションとパースのオーバーヘッドがあり、特別なルール（状態、コンテキスト、またはエフェクトなし）と多くの開発者が苦労する概念的なオーバーヘッドがあります。
 
-In all, the fact that Next.js leans more on the server (and RSC's and caching by default) may not be what you want, especially if you are building a _webapp_ which you expect will become more and more dynamic and interactive anyway.
+全体として、Next.js がサーバー（およびデフォルトでの RSC とキャッシング）により傾いているという事実は、特に _ウェブアプリ_ を構築しており、それがどんどんダイナミックでインタラクティブになることを期待している場合には、望ましいものではないかもしれません。
 
-If your product either should be:
+もし貴方のプロダクトが以下のいずれかである場合：
 
-- leaning more towards being an _app_ than a _site/page_.
-- having a lot of dynamically generated and/or frequently updating content (coming from a DB), where caching doesn't give a lot of gains.
-- having a [single unified model for data loading](https://x.com/DevtoolsFM/status/1756091319632683073) that may include polling and [live UI updates](https://www.flightcontrol.dev/blog/nextjs-app-router-migration-the-good-bad-and-ugly#bad-have-to-add-client-side-fetching-for-live-ui-updates).
-- local/offline-first, and/or a [PWA](https://web.dev/learn/pwa/assets-and-data#platform-specific_apps_vs_pwa).
-- cross-platform (reusing code between web and native), since native platforms are typically client-centered (and it [isn't prioritized](https://github.com/reactjs/rfcs/blob/main/text/0188-server-components.md#what-does-it-mean-for-react-native) or very clear how React Server Components would work on React Native).
-- using less server resources (scalability, cost-wise), in favor of requiring slightly more processing power on the client.
+- _アプリ_ に寄りかかっているよりも、_サイト/ページ_ に寄りかかっている。
+- データベースからの大量の動的に生成されたり頻繁に更新されるコンテンツを持っており、キャッシングが大きな利益をもたらさない場合。
+- ポーリングや [ライブUIの更新](https://www.flightcontrol.dev/blog/nextjs-app-router-migration-the-good-bad-and-ugly#bad-have-to-add-client-side-fetching-for-live-ui-updates) を含むかもしれない[データローディングのための単一統一モデル](https://x.com/DevtoolsFM/status/1756091319632683073) を持っている。
+- ローカル/オフラインファースト、および/または [PWA](https://web.dev/learn/pwa/assets-and-data#platform-specific_apps_vs_pwa)。
+- クライアント中心である典型的なネイティブプラットフォーム間でのコードの再利用（クロスプラットフォーム）、React サーバーコンポーネントが React Native 上でどのように機能するかが [優先されていない](https://github.com/reactjs/rfcs/blob/main/text/0188-server-components.md#what-does-it-mean-for-react-native) または非常に明確ではない。
+- サーバーリソースの使用を減らし（スケーラビリティ、コスト面で）、代わりにクライアント上でわずかに多くの処理能力を要求する。
 
-then the server-first orientation of Next.js and Vercel isn't helpful and can be a hindrance.
+その場合、Next.js と Vercel のサーバーファースト指向は役に立たず、障害となる可能性があります。
 
 
-### Vike - granular work-split between server and client
+### Vike - サーバーとクライアント間の詳細な作業分割
 
-With Vike, you can choose setups that fit the aforementioned use cases.
-You can partially or completely opt out of SSR (turn on/off for whole app, <Link href="/ssr">for some pages</Link>, or <Link href="/ClientOnly">for some components</Link>).
-You can also use SSR for the first page and then, from there on, use client-only navigation while fetching data directly from the data source (without involving your SSR server).
+Vike を使えば、前述のユースケースに合わせた設定を選択できます。
+SSR を部分的にまたは完全にオプトアウトすることができます（アプリ全体、<Link href="/ssr">一部のページ</Link>、または <Link href="/ClientOnly">一部のコンポーネント</Link> でのオン/オフ）。
+また、最初のページに SSR を使用し、そこから先はクライアントのみのナビゲーションを使用しつつ、データソースから直接データを取得する（SSR サーバーを介さない）こともできます。
 
-Vike has first-class support for leaning towards the client-side, as well as first-class support for SSR use cases.
-Vike is made by the community and has no incentive to favor any side of the work-split between the client and the server.
+Vike は、クライアントサイド寄りのサポートはもちろん、SSR のユースケースに対するファーストクラスのサポートを提供します。
+Vike はコミュニティによって作られており、クライアントとサーバー間の作業分割のどちらかを優遇するインセンティブはありません。
 
 
 
@@ -221,18 +213,18 @@ Vike is made by the community and has no incentive to favor any side of the work
 
 総合的に見て、Vikeは簡単ではないが、よりシンプルです。大規模なプロジェクトでは、「簡単」であることよりも 「シンプル」であることの方が基本的に重要です。
 
-最後になりますが、フレームワークと戦うのは厄介ですが、手動での統合は楽しく、洞察力に富みます。Vikeは、手動での統合を楽しむことができるフレームワークです。             
+最後になりますが、フレームワークと戦うのは厄介ですが、手動での統合は楽しく、洞察力に富みます。Vikeは、手動での統合を楽しむことができるフレームワークです。
 
 
-## React Server Components
+## React サーバーコンポーネント
 
-React 18 introduced novel techniques that unlock many capabilities.
+React 18 は、多くの機能を解き放つ新しい技術を導入しました。
 
-Vike, and in particular <Link href="/react#vike-react">`vike-react`</Link>, extensively leverages React's 18 new techniques. (<Link href="/streaming">Streaming</Link>, <Link href="/streaming#progressive-rendering">Progressive Rendering</Link>, independent and collocated data fetching, <Link href="/RPC">RPC</Link>, etc.)
+Vike、特に <Link href="/react#vike-react">`vike-react`</Link> は、React 18 の新しい技術を広範囲に活用しています。（<Link href="/streaming">ストリーミング</Link>、<Link href="/streaming#progressive-rendering">プログレッシブレンダリング</Link>、独立したデータフェッチングと位置を共有するデータフェッチング、<Link href="/RPC">RPC</Link> など）
 
-Vike provides you with extensive control for integrating tools as you see fit, such as control over React's SSR <Link href="/streaming">stream</Link>. At the same time <a href="/extensions">Vike extensions</a> provide built-in integrations for a quick start. We call this dual approach <Link href="/why#optional-control">optional control</Link>.
+Vike は、React の SSR <Link href="/streaming">ストリーム</Link> の制御など、適切と思われるツールを統合するための広範な制御を提供します。同時に <a href="/extensions">Vike 拡張機能</a> は、クイックスタートのための組み込みの統合を提供します。私たちはこの二重のアプローチを <Link href="/why#optional-control">オプショナルコントロール</Link> と呼んでいます。
 
-One aspect `vike-react` doesn't support yet are components that are loaded only on the server-side. While we are researching a DX for such components, we believe this new paradigm is too early for being used in production. See <Link href="/react#react-server-components" doNotInferSectionTitle />.
+`vike-react` がまだサポートしていない一つの側面は、サーバーサイドでのみロードされるコンポーネントです。私たちはそのようなコンポーネントのための DX を研究していますが、この新しいパラダイムが本番環境で使用されるには時期尚早だと考えています。詳細は <Link href="/react#react-server-components" doNotInferSectionTitle /> をご覧ください。
 
 
 ## 独自のフレームワークを構築
@@ -243,6 +235,6 @@ Vikeは、ユーザーがVikeの上にフレームワークを構築できるよ
 
 > 独自のフレームワークを構築する[ユースケース](https://vike.land)はたくさんありますが、最も顕著なのは[企業内のフレームワークを構築](https://vike.land#scale)することです。
 
-私たちは、特定のユースケースに高度に調整されたReactフレームワークの普及を促進しています。  
+私たちは、特定のユースケースに高度に調整されたReactフレームワークの普及を促進しています。
 
-Read more at [Vike.land](https://vike.land).
+詳細は[Vike.land](https://vike.land)へ。
